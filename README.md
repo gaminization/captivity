@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v0.7--alpha-yellow)
+![Status](https://img.shields.io/badge/status-v0.8--alpha-yellow)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,13 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v0.8 — Plugin Architecture
+* Extensible plugin system with abstract base class
+* Built-in: Pronto Networks + Generic (form parser fallback)
+* Priority-based plugin selection and discovery
+* Third-party plugins via pip entry_points
+* `captivity plugins` CLI command
 
 ### v0.7 — Dynamic Portal Login Parsing
 * Automatic HTML form detection and parsing (stdlib only)
@@ -244,7 +251,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v0.8 — Plugin architecture.
+**Next:** v0.9 — NetworkManager DBus event detection.
 
 ---
 

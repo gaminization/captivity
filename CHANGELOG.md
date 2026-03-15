@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.8] — 2026-03-16
+
+### Added
+- Plugin architecture: `plugins/base.py` abstract base class
+- `plugins/pronto.py` — Pronto Networks plugin (extracted from login engine)
+- `plugins/generic.py` — Generic plugin using HTML form parser (fallback)
+- `plugins/loader.py` — priority-based plugin discovery (built-in + entry_points)
+- `captivity plugins` CLI subcommand to list installed plugins
+- `tests/python/test_plugins.py` — 19 plugin tests
+
+---
+
 ## [v0.7] — 2026-03-16
 
 ### Added

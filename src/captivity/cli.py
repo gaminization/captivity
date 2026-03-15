@@ -7,6 +7,7 @@ Provides subcommands:
     captivity status   — Show connection status
     captivity daemon   — Run background reconnect loop
     captivity creds    — Manage stored credentials
+    captivity plugins  — List available plugins
 """
 
 import argparse
@@ -130,6 +131,23 @@ def cmd_creds(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_plugins(args: argparse.Namespace) -> int:
+    """Handle the 'plugins' subcommand."""
+    from captivity.plugins.loader import discover_plugins
+
+    plugins = discover_plugins()
+
+    if not plugins:
+        print("No plugins found.")
+        return 0
+
+    print(f"Available plugins ({len(plugins)}):")
+    for plugin in plugins:
+        print(f"  [{plugin.priority:>4d}] {plugin.name}")
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -184,6 +202,10 @@ def build_parser() -> argparse.ArgumentParser:
     delete_p.add_argument("network", help="Network name")
     creds_sub.add_parser("list", help="List stored networks")
     creds_parser.set_defaults(func=cmd_creds)
+
+    # plugins
+    plugins_parser = subparsers.add_parser("plugins", help="List available plugins")
+    plugins_parser.set_defaults(func=cmd_plugins)
 
     return parser
 
