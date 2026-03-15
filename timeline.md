@@ -7,7 +7,7 @@
 | v0.1    | Initial login script               | ✅ Released  |
 | v0.2    | Secure credential storage          | ✅ Released  |
 | v0.3    | Automatic reconnect loop           | ✅ Released  |
-| v0.4    | NetworkManager dispatcher          | 🔲 Planned  |
+| v0.4    | NetworkManager dispatcher          | ✅ Released  |
 | v0.5    | Systemd daemon service             | 🔲 Planned  |
 | v0.6    | Python core rewrite                | 🔲 Planned  |
 | v0.7    | Dynamic portal login parsing       | 🔲 Planned  |
@@ -26,6 +26,11 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v0.4 — 2026-03-16
+- NetworkManager dispatcher integration
+- Auto-login on WiFi connect and connectivity changes
+- Installer with config template
 
 ### v0.3 — 2026-03-16
 - Automatic reconnect loop with connectivity probing

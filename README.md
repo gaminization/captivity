@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v0.3--alpha-yellow)
+![Status](https://img.shields.io/badge/status-v0.4--alpha-yellow)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,13 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v0.4 — NetworkManager Dispatcher Integration
+* Automatic login when WiFi connects via NetworkManager dispatcher
+* Detects WiFi interfaces (wlan*, wlp*, wlo*)
+* Triggers on `up` and `connectivity-change` events
+* Configuration via `/etc/captivity/config`
+* Syslog logging
 
 ### v0.3 — Automatic Reconnect Loop
 * Connectivity probing via `https://clients3.google.com/generate_204`
@@ -136,6 +143,7 @@ bash scripts/captivity-creds.sh list
 bash tests/test_credentials.sh
 bash tests/test_login.sh
 bash tests/test_reconnect.sh
+bash tests/test_dispatcher.sh
 ```
 
 ---
@@ -148,10 +156,13 @@ captivity/
 ├── scripts/
 │   ├── captivity-creds.sh      # Credential management CLI
 │   ├── captivity-login.sh      # Enhanced login script
-│   └── captivity-reconnect.sh  # Reconnect loop with probing
+│   ├── captivity-reconnect.sh  # Reconnect loop with probing
+│   ├── captivity-dispatcher.sh # NetworkManager dispatcher hook
+│   └── install-dispatcher.sh   # Dispatcher installer
 ├── tests/
 │   ├── test_credentials.sh     # Credential tests
 │   ├── test_reconnect.sh       # Reconnect loop tests
+│   ├── test_dispatcher.sh      # Dispatcher tests
 │   └── test_login.sh           # Login tests
 ├── docs/
 │   └── architecture.md         # Architecture overview
@@ -169,7 +180,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v0.4 — NetworkManager dispatcher integration.
+**Next:** v0.5 — Systemd daemon service.
 
 ---
 

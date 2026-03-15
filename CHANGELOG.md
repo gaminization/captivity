@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.4] — 2026-03-16
+
+### Added
+- `scripts/captivity-dispatcher.sh` — NetworkManager dispatcher hook
+- Automatic login trigger on WiFi `up` and `connectivity-change` events
+- WiFi interface detection (wlan*, wlp*, wlo* patterns + sysfs check)
+- `scripts/install-dispatcher.sh` — install/uninstall dispatcher with config template
+- Configuration file support at `/etc/captivity/config`
+- Syslog logging via `logger`
+- `tests/test_dispatcher.sh` — dispatcher and installer tests
+
+---
+
 ## [v0.3] — 2026-03-16
 
 ### Added
