@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v0.4--alpha-yellow)
+![Status](https://img.shields.io/badge/status-v0.5--alpha-yellow)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,13 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v0.5 — Systemd Daemon Service
+* Run as a background system daemon via `systemd`
+* Automatic startup on boot
+* Journal logging (`journalctl -u captivity`)
+* Auto-restart on failure
+* Security hardening (NoNewPrivileges, ProtectSystem)
 
 ### v0.4 — NetworkManager Dispatcher Integration
 * Automatic login when WiFi connects via NetworkManager dispatcher
@@ -158,7 +165,10 @@ captivity/
 │   ├── captivity-login.sh      # Enhanced login script
 │   ├── captivity-reconnect.sh  # Reconnect loop with probing
 │   ├── captivity-dispatcher.sh # NetworkManager dispatcher hook
-│   └── install-dispatcher.sh   # Dispatcher installer
+│   ├── install-dispatcher.sh   # Dispatcher installer
+│   └── install-service.sh      # Service installer
+├── systemd/
+│   └── captivity.service       # Systemd unit file
 ├── tests/
 │   ├── test_credentials.sh     # Credential tests
 │   ├── test_reconnect.sh       # Reconnect loop tests
@@ -180,7 +190,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v0.5 — Systemd daemon service.
+**Next:** v0.6 — Python core rewrite.
 
 ---
 

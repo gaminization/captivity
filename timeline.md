@@ -8,7 +8,7 @@
 | v0.2    | Secure credential storage          | ✅ Released  |
 | v0.3    | Automatic reconnect loop           | ✅ Released  |
 | v0.4    | NetworkManager dispatcher          | ✅ Released  |
-| v0.5    | Systemd daemon service             | 🔲 Planned  |
+| v0.5    | Systemd daemon service             | ✅ Released  |
 | v0.6    | Python core rewrite                | 🔲 Planned  |
 | v0.7    | Dynamic portal login parsing       | 🔲 Planned  |
 | v0.8    | Plugin architecture                | 🔲 Planned  |
@@ -26,6 +26,11 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v0.5 — 2026-03-16
+- Systemd service unit with security hardening
+- Auto-restart on failure, journal logging
+- Service installer with enable/start/uninstall
 
 ### v0.4 — 2026-03-16
 - NetworkManager dispatcher integration

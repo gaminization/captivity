@@ -1,0 +1,27 @@
+[Unit]
+Description=Captivity — Autonomous Captive Portal Login Client
+Documentation=https://github.com/gaminization/captivity
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/captivity/scripts/captivity-reconnect.sh --daemon
+Restart=on-failure
+RestartSec=10
+EnvironmentFile=-/etc/captivity/config
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=captivity
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ReadWritePaths=/tmp
+
+[Install]
+WantedBy=multi-user.target

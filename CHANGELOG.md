@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.5] — 2026-03-16
+
+### Added
+- `systemd/captivity.service` — systemd service unit for background daemon
+- Security hardening (NoNewPrivileges, ProtectSystem, PrivateTmp)
+- Automatic restart on failure with 10s delay
+- Journal logging via stdout/stderr
+- `scripts/install-service.sh` — install/enable/start/uninstall service
+
+---
+
 ## [v0.4] — 2026-03-16
 
 ### Added
