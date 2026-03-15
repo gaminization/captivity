@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.7] — 2026-03-16
+
+### Added
+- `core/parser.py` — dynamic HTML form parser for arbitrary captive portals
+- Automatic field detection (username/password by name patterns and input type)
+- Form payload builder with hidden field preservation
+- `core/cache.py` — portal endpoint cache (JSON, XDG-compliant, 7-day TTL)
+- `tests/python/test_parser.py` — 15 parser tests
+- `tests/python/test_cache.py` — 10 cache tests
+
+---
+
 ## [v0.6] — 2026-03-16
 
 ### Added

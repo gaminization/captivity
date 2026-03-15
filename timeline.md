@@ -10,7 +10,7 @@
 | v0.4    | NetworkManager dispatcher          | ✅ Released  |
 | v0.5    | Systemd daemon service             | ✅ Released  |
 | v0.6    | Python core rewrite                | ✅ Released  |
-| v0.7    | Dynamic portal login parsing       | 🔲 Planned  |
+| v0.7    | Dynamic portal login parsing       | ✅ Released  |
 | v0.8    | Plugin architecture                | 🔲 Planned  |
 | v0.9    | NetworkManager DBus events         | 🔲 Planned  |
 | v1.0    | Stable captive portal client       | 🔲 Planned  |
@@ -26,6 +26,11 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v0.7 — 2026-03-16
+- Dynamic HTML form parser for arbitrary portals
+- Portal endpoint cache with 7-day TTL
+- 25 new tests (parser + cache)
 
 ### v0.6 — 2026-03-16
 - Python package structure with `src/captivity/`

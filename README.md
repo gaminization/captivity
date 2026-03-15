@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v0.6--alpha-yellow)
+![Status](https://img.shields.io/badge/status-v0.7--alpha-yellow)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,12 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v0.7 — Dynamic Portal Login Parsing
+* Automatic HTML form detection and parsing (stdlib only)
+* Smart field identification (username/password by name patterns)
+* Portal endpoint cache for fast re-login (7-day TTL)
+* Supports arbitrary captive portals without hardcoded form fields
 
 ### v0.6 — Python Core Rewrite
 * Full Python package: `src/captivity/` with modular architecture
@@ -238,7 +244,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v0.7 — Dynamic portal login parsing.
+**Next:** v0.8 — Plugin architecture.
 
 ---
 
