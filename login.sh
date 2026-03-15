@@ -1,4 +1,12 @@
 #!/bin/bash
+# =============================================================================
+# login.sh — Legacy Captive Portal Login Script (v0.1)
+# Part of the Captivity project (https://github.com/gaminization/captivity)
+#
+# NOTE: This is the original v0.1 script preserved for backward compatibility.
+# For the enhanced version with secure credential storage, use:
+#   scripts/captivity-login.sh
+# =============================================================================
 
 USERNAME="" #enter your username here
 PASSWORD="" #enter your password here
