@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.6] — 2026-03-16
+
+### Added
+- Python package structure: `src/captivity/` with `core/`, `daemon/`, `utils/` subpackages
+- `core/probe.py` — connectivity probing via `requests` (replaces curl)
+- `core/credentials.py` — `secret-tool` wrapper in Python
+- `core/login.py` — Pronto Networks login engine using `requests.Session`
+- `daemon/runner.py` — reconnect loop with exponential backoff and signal handling
+- `utils/logging.py` — structured logging with ISO timestamps
+- `cli.py` — CLI dispatcher: `captivity login|probe|status|daemon|creds`
+- `pyproject.toml` — package metadata, `requests` dependency, `captivity` entry point
+- Python test suite: 34 tests (probe, credentials, login, CLI)
+
+### Changed
+- `systemd/captivity.service` — ExecStart now uses `python3 -m captivity daemon`
+
+---
+
 ## [v0.5] — 2026-03-16
 
 ### Added

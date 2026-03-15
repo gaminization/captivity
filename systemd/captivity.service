@@ -6,7 +6,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/captivity/scripts/captivity-reconnect.sh --daemon
+# Python core (v0.6+) — preferred
+ExecStart=/usr/bin/python3 -m captivity daemon --network ${CAPTIVITY_NETWORK}
+# Legacy shell fallback (uncomment to use v0.5 shell scripts):
+# ExecStart=/opt/captivity/scripts/captivity-reconnect.sh --daemon
 Restart=on-failure
 RestartSec=10
 EnvironmentFile=-/etc/captivity/config

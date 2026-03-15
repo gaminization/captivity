@@ -9,7 +9,7 @@
 | v0.3    | Automatic reconnect loop           | ✅ Released  |
 | v0.4    | NetworkManager dispatcher          | ✅ Released  |
 | v0.5    | Systemd daemon service             | ✅ Released  |
-| v0.6    | Python core rewrite                | 🔲 Planned  |
+| v0.6    | Python core rewrite                | ✅ Released  |
 | v0.7    | Dynamic portal login parsing       | 🔲 Planned  |
 | v0.8    | Plugin architecture                | 🔲 Planned  |
 | v0.9    | NetworkManager DBus events         | 🔲 Planned  |
@@ -26,6 +26,12 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v0.6 — 2026-03-16
+- Python package structure with `src/captivity/`
+- Connectivity probe, credential wrapper, login engine in Python
+- CLI: `captivity login|probe|status|daemon|creds`
+- 34 Python tests passing
 
 ### v0.5 — 2026-03-16
 - Systemd service unit with security hardening

@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v0.5--alpha-yellow)
+![Status](https://img.shields.io/badge/status-v0.6--alpha-yellow)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,16 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v0.6 — Python Core Rewrite
+* Full Python package: `src/captivity/` with modular architecture
+* CLI entry point: `captivity login|probe|status|daemon|creds`
+* Connectivity probe via `requests` (replaces curl)
+* Login engine using `requests.Session`
+* Secure credentials via `secret-tool` wrapper
+* Reconnect daemon with exponential backoff
+* Structured logging with ISO timestamps
+* 34 Python unit tests
 
 ### v0.5 — Systemd Daemon Service
 * Run as a background system daemon via `systemd`
@@ -115,7 +125,30 @@ Test without making network requests:
 bash scripts/captivity-login.sh --network my_campus_wifi --dry-run
 ```
 
-### Legacy Script
+### Python CLI (v0.6+)
+
+```bash
+# Install
+pip3 install .
+
+# Login
+captivity login --network <SSID>
+
+# Check status
+captivity status
+
+# Probe connectivity
+captivity probe
+
+# Run daemon
+captivity daemon --network <SSID>
+
+# Manage credentials
+captivity creds store <SSID>
+captivity creds list
+```
+
+### Legacy Shell Scripts (v0.2–v0.5)
 
 The original v0.1 script still works:
 
@@ -150,7 +183,7 @@ bash scripts/captivity-creds.sh list
 bash tests/test_credentials.sh
 bash tests/test_login.sh
 bash tests/test_reconnect.sh
-bash tests/test_dispatcher.sh
+PYTHONPATH=src python3 -m pytest tests/python/ -v
 ```
 
 ---
@@ -167,12 +200,27 @@ captivity/
 │   ├── captivity-dispatcher.sh # NetworkManager dispatcher hook
 │   ├── install-dispatcher.sh   # Dispatcher installer
 │   └── install-service.sh      # Service installer
+├── src/captivity/                  # Python core (v0.6+)
+│   ├── cli.py                  # CLI dispatcher
+│   ├── core/
+│   │   ├── probe.py            # Connectivity probing
+│   │   ├── credentials.py      # secret-tool wrapper
+│   │   └── login.py            # Login engine
+│   ├── daemon/
+│   │   └── runner.py           # Reconnect daemon
+│   └── utils/
+│       └── logging.py          # Structured logging
 ├── systemd/
 │   └── captivity.service       # Systemd unit file
 ├── tests/
 │   ├── test_credentials.sh     # Credential tests
 │   ├── test_reconnect.sh       # Reconnect loop tests
 │   ├── test_dispatcher.sh      # Dispatcher tests
+│   └── python/                 # Python tests (34 tests)
+│       ├── test_probe.py
+│       ├── test_credentials.py
+│       ├── test_login.py
+│       └── test_cli.py
 │   └── test_login.sh           # Login tests
 ├── docs/
 │   └── architecture.md         # Architecture overview
@@ -190,7 +238,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v0.6 — Python core rewrite.
+**Next:** v0.7 — Dynamic portal login parsing.
 
 ---
 
