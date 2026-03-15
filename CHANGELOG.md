@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.3] — 2026-03-16
+
+### Added
+- `scripts/captivity-reconnect.sh` — automatic reconnect loop with connectivity probing
+- Connectivity probe using `https://clients3.google.com/generate_204`
+- Exponential backoff retry: 5s → 10s → 30s → 60s → 120s → 300s
+- `--once` mode for single probe, `--daemon` mode for continuous operation
+- Graceful shutdown via SIGTERM/SIGINT signal handling
+- `tests/test_reconnect.sh` — reconnect loop tests
+
+---
+
 ## [v0.2] — 2026-03-16
 
 ### Added

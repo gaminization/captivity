@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v0.2--alpha-yellow)
+![Status](https://img.shields.io/badge/status-v0.3--alpha-yellow)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,14 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v0.3 — Automatic Reconnect Loop
+* Connectivity probing via `https://clients3.google.com/generate_204`
+* HTTP 204 = connected, redirect = captive portal detected
+* Exponential backoff retry (5s → 10s → 30s → 60s → 120s → 300s)
+* `--once` mode for single connectivity check
+* `--daemon` mode for continuous monitoring
+* Graceful shutdown on SIGTERM/SIGINT
 
 ### v0.2 — Secure Credential Storage
 * Secure credential management via Linux Secret Service (`secret-tool`)
@@ -127,6 +135,7 @@ bash scripts/captivity-creds.sh list
 ```bash
 bash tests/test_credentials.sh
 bash tests/test_login.sh
+bash tests/test_reconnect.sh
 ```
 
 ---
@@ -138,9 +147,11 @@ captivity/
 ├── login.sh                    # Original v0.1 script (preserved)
 ├── scripts/
 │   ├── captivity-creds.sh      # Credential management CLI
-│   └── captivity-login.sh      # Enhanced login script
+│   ├── captivity-login.sh      # Enhanced login script
+│   └── captivity-reconnect.sh  # Reconnect loop with probing
 ├── tests/
 │   ├── test_credentials.sh     # Credential tests
+│   ├── test_reconnect.sh       # Reconnect loop tests
 │   └── test_login.sh           # Login tests
 ├── docs/
 │   └── architecture.md         # Architecture overview
@@ -158,7 +169,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v0.3 — Automatic reconnect loop with connectivity probing.
+**Next:** v0.4 — NetworkManager dispatcher integration.
 
 ---
 
