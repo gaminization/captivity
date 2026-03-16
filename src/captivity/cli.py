@@ -9,6 +9,7 @@ Provides subcommands:
     captivity creds    — Manage stored credentials
     captivity plugins  — List available plugins
     captivity networks — List known networks
+    captivity tray     — Launch system tray icon
 """
 
 import argparse
@@ -174,6 +175,29 @@ def cmd_networks(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tray(args: argparse.Namespace) -> int:
+    """Handle the 'tray' subcommand."""
+    from captivity.ui.tray import TrayIcon, is_gtk_available
+    from captivity.ui.notifier import Notifier
+    from captivity.daemon.events import EventBus
+
+    if not is_gtk_available():
+        print("Error: GTK3 is required for the tray icon.")
+        print("Install with: sudo apt install python3-gi gir1.2-gtk-3.0")
+        return 1
+
+    event_bus = EventBus()
+    notifier = Notifier(enabled=not getattr(args, "no_notify", False))
+
+    tray = TrayIcon(
+        event_bus=event_bus,
+        notifier=notifier,
+        network=args.network or "",
+    )
+    tray.run()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -236,6 +260,12 @@ def build_parser() -> argparse.ArgumentParser:
     # networks
     networks_parser = subparsers.add_parser("networks", help="List known networks")
     networks_parser.set_defaults(func=cmd_networks)
+
+    # tray
+    tray_parser = subparsers.add_parser("tray", help="Launch system tray icon")
+    tray_parser.add_argument("--network", "-n", default=None, help="Network name")
+    tray_parser.add_argument("--no-notify", action="store_true", help="Disable notifications")
+    tray_parser.set_defaults(func=cmd_tray)
 
     return parser
 

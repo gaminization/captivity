@@ -14,7 +14,7 @@
 | v0.8    | Plugin architecture                | ✅ Released  |
 | v0.9    | NetworkManager DBus events         | ✅ Released  |
 | v1.0    | Stable captive portal client       | ✅ Released  |
-| v1.1    | Tray UI + notifications            | 🔲 Planned  |
+| v1.1    | Tray UI + notifications            | ✅ Released  |
 | v1.2    | Automatic network learning         | 🔲 Planned  |
 | v1.3    | Telemetry + bandwidth monitoring   | 🔲 Planned  |
 | v1.4    | Local web dashboard                | 🔲 Planned  |
@@ -26,6 +26,12 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.1 — 2026-03-16
+- GTK3 system tray icon with event-driven status
+- Desktop notifications via notify-send
+- `captivity tray` CLI command
+- 177 total tests (137 Python + 40 shell)
 
 ### v1.0 — 2026-03-16
 - Connection state machine (7 states)

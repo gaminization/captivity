@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.1] — 2026-03-16
+
+### Added
+
+- `ui/` subpackage for graphical components
+- `ui/notifier.py` — desktop notifications via `notify-send`
+- `ui/tray.py` — GTK3 system tray icon with event-driven status updates
+- `captivity tray` CLI subcommand to launch tray icon
+
+### Features
+
+- Notifications for: login success/failure, portal detected, session expired, daemon start
+- Tray icon with context menu (Probe, Login, Quit)
+- Event bus integration — icon and notifications update automatically
+- Graceful degradation when GTK3 or notify-send unavailable
+
+### Tests
+
+- `test_notifier.py` (12 tests), `test_tray.py` (10 tests)
+- Total: 137 Python tests + 40 shell tests = 177 tests passing
+
+---
+
 ## [v1.0] — 2026-03-16
 
 ### Added

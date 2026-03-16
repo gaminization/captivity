@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v1.0--stable-green)
+![Status](https://img.shields.io/badge/status-v1.1-green)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,12 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v1.1 — Tray UI + Notifications
+* GTK3 system tray icon with event-driven status updates
+* Desktop notifications (login success/failure, portal detected, session expired)
+* `captivity tray` CLI command to launch tray icon
+* Graceful degradation when GTK3 or notify-send unavailable
 
 ### v1.0 — Stable Release
 * Connection state machine (INIT → CONNECTED lifecycle)
@@ -265,7 +271,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v1.1 — Tray UI + notifications.
+**Next:** v1.2 — Automatic network learning.
 
 ---
 
