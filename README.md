@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v0.8--alpha-yellow)
+![Status](https://img.shields.io/badge/status-v0.9--alpha-yellow)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,13 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v0.9 — NetworkManager DBus Event Detection
+* Event-driven architecture: internal event bus (subscribe/publish)
+* NetworkManager connectivity state via DBus (busctl)
+* Active WiFi SSID detection via nmcli
+* System resume detection via logind
+* Graceful fallback to polling when DBus unavailable
 
 ### v0.8 — Plugin Architecture
 * Extensible plugin system with abstract base class
@@ -251,7 +258,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v0.9 — NetworkManager DBus event detection.
+**Next:** v1.0 — Stable release.
 
 ---
 

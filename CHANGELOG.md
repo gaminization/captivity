@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.9] — 2026-03-16
+
+### Added
+- `daemon/events.py` — thread-safe event bus (subscribe/publish)
+    - Events: NETWORK_CONNECTED, PORTAL_DETECTED, LOGIN_SUCCESS, LOGIN_FAILURE, SESSION_EXPIRED, SYSTEM_RESUME, DAEMON_START/STOP
+- `daemon/dbus_monitor.py` — NetworkManager state monitor via busctl/nmcli
+    - Connectivity state queries (NONE, PORTAL, LIMITED, FULL)
+    - Active WiFi SSID detection
+    - System resume detection via logind
+    - Falls back to polling when DBus unavailable
+- `tests/python/test_events.py` — 10 event bus tests
+- `tests/python/test_dbus_monitor.py` — 12 DBus monitor tests
+
+---
+
 ## [v0.8] — 2026-03-16
 
 ### Added

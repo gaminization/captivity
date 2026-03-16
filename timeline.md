@@ -12,7 +12,7 @@
 | v0.6    | Python core rewrite                | ✅ Released  |
 | v0.7    | Dynamic portal login parsing       | ✅ Released  |
 | v0.8    | Plugin architecture                | ✅ Released  |
-| v0.9    | NetworkManager DBus events         | 🔲 Planned  |
+| v0.9    | NetworkManager DBus events         | ✅ Released  |
 | v1.0    | Stable captive portal client       | 🔲 Planned  |
 | v1.1    | Tray UI + notifications            | 🔲 Planned  |
 | v1.2    | Automatic network learning         | 🔲 Planned  |
@@ -26,6 +26,11 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v0.9 — 2026-03-16
+- Thread-safe event bus with subscribe/publish
+- NetworkManager DBus monitor (busctl/nmcli)
+- 22 new tests (events + dbus_monitor)
 
 ### v0.8 — 2026-03-16
 - Plugin base class, Pronto + Generic plugins
