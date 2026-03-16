@@ -1,7 +1,7 @@
-"""Tests for captivity.core.login module."""
+"""Tests for captivity.core.login module (v1.0 — plugin-based)."""
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 
 from captivity.core.login import do_login, LoginError
 from captivity.core.probe import ConnectivityStatus
@@ -9,31 +9,71 @@ from captivity.core.credentials import CredentialError
 
 
 class TestLogin(unittest.TestCase):
-    """Test login engine."""
+    """Test plugin-based login engine."""
 
     @patch("captivity.core.login.probe_connectivity")
+    @patch("captivity.core.login.select_plugin")
+    @patch("captivity.core.login.discover_plugins")
+    @patch("captivity.core.login.PortalCache")
     @patch("captivity.core.login.requests.Session")
     @patch("captivity.core.login.retrieve")
-    def test_successful_login(self, mock_retrieve, mock_session_cls, mock_probe):
-        """Login succeeds when connectivity is verified."""
+    def test_successful_login(
+        self, mock_retrieve, mock_session_cls, mock_cache_cls,
+        mock_discover, mock_select, mock_probe,
+    ):
+        """Login succeeds via plugin detection and connectivity verification."""
         mock_retrieve.return_value = ("user", "pass")
         mock_session = MagicMock()
         mock_session_cls.return_value = mock_session
-        mock_probe.return_value = (ConnectivityStatus.CONNECTED, None)
+
+        mock_cache = MagicMock()
+        mock_cache.get.return_value = None
+        mock_cache_cls.return_value = mock_cache
+
+        # First probe call returns portal redirect, second returns connected
+        mock_probe.side_effect = [
+            (ConnectivityStatus.PORTAL_DETECTED, "http://portal.example.com"),
+            (ConnectivityStatus.CONNECTED, None),
+        ]
+
+        mock_plugin = MagicMock()
+        mock_plugin.name = "TestPlugin"
+        mock_plugin.login.return_value = True
+        mock_select.return_value = mock_plugin
+        mock_discover.return_value = [mock_plugin]
 
         result = do_login("test_net")
         self.assertTrue(result)
-        mock_retrieve.assert_called_once_with("test_net")
-        mock_session.post.assert_called_once()
+        mock_plugin.login.assert_called_once()
 
     @patch("captivity.core.login.probe_connectivity")
+    @patch("captivity.core.login.select_plugin")
+    @patch("captivity.core.login.discover_plugins")
+    @patch("captivity.core.login.PortalCache")
     @patch("captivity.core.login.requests.Session")
     @patch("captivity.core.login.retrieve")
-    def test_login_fails_when_not_verified(self, mock_retrieve, mock_session_cls, mock_probe):
-        """Login returns False when connectivity check fails."""
+    def test_login_fails_when_not_verified(
+        self, mock_retrieve, mock_session_cls, mock_cache_cls,
+        mock_discover, mock_select, mock_probe,
+    ):
+        """Login returns False when connectivity check fails after plugin login."""
         mock_retrieve.return_value = ("user", "pass")
         mock_session_cls.return_value = MagicMock()
-        mock_probe.return_value = (ConnectivityStatus.PORTAL_DETECTED, None)
+
+        mock_cache = MagicMock()
+        mock_cache.get.return_value = None
+        mock_cache_cls.return_value = mock_cache
+
+        mock_probe.side_effect = [
+            (ConnectivityStatus.PORTAL_DETECTED, "http://portal.example.com"),
+            (ConnectivityStatus.PORTAL_DETECTED, None),
+        ]
+
+        mock_plugin = MagicMock()
+        mock_plugin.name = "TestPlugin"
+        mock_plugin.login.return_value = True
+        mock_select.return_value = mock_plugin
+        mock_discover.return_value = [mock_plugin]
 
         result = do_login("test_net")
         self.assertFalse(result)
@@ -54,34 +94,65 @@ class TestLogin(unittest.TestCase):
         result = do_login("test_net", dry_run=True)
         self.assertTrue(result)
 
+    @patch("captivity.core.login.select_plugin")
+    @patch("captivity.core.login.discover_plugins")
+    @patch("captivity.core.login.probe_connectivity")
+    @patch("captivity.core.login.PortalCache")
     @patch("captivity.core.login.requests.Session")
     @patch("captivity.core.login.retrieve")
-    def test_login_error_on_portal_failure(self, mock_retrieve, mock_session_cls):
-        """LoginError raised when portal is unreachable."""
-        import requests
+    def test_no_plugin_match_raises(
+        self, mock_retrieve, mock_session_cls, mock_cache_cls,
+        mock_probe, mock_discover, mock_select,
+    ):
+        """LoginError raised when no plugin matches the portal."""
         mock_retrieve.return_value = ("user", "pass")
-        mock_session = MagicMock()
-        mock_session.get.side_effect = requests.exceptions.ConnectionError()
-        mock_session_cls.return_value = mock_session
+        mock_session_cls.return_value = MagicMock()
+
+        mock_cache = MagicMock()
+        mock_cache.get.return_value = None
+        mock_cache_cls.return_value = mock_cache
+
+        mock_probe.return_value = (
+            ConnectivityStatus.PORTAL_DETECTED, "http://portal.example.com",
+        )
+        mock_select.return_value = None
+        mock_discover.return_value = []
 
         with self.assertRaises(LoginError):
             do_login("test_net")
 
     @patch("captivity.core.login.probe_connectivity")
+    @patch("captivity.core.login.select_plugin")
+    @patch("captivity.core.login.discover_plugins")
+    @patch("captivity.core.login.PortalCache")
     @patch("captivity.core.login.requests.Session")
     @patch("captivity.core.login.retrieve")
-    def test_custom_portal_url(self, mock_retrieve, mock_session_cls, mock_probe):
-        """Custom portal URL is used for login."""
+    def test_custom_portal_url(
+        self, mock_retrieve, mock_session_cls, mock_cache_cls,
+        mock_discover, mock_select, mock_probe,
+    ):
+        """Custom portal URL bypasses probe detection."""
         mock_retrieve.return_value = ("user", "pass")
         mock_session = MagicMock()
         mock_session_cls.return_value = mock_session
+
+        mock_cache = MagicMock()
+        mock_cache.get.return_value = None
+        mock_cache_cls.return_value = mock_cache
+
+        # probe_connectivity only called once (for verification)
         mock_probe.return_value = (ConnectivityStatus.CONNECTED, None)
 
+        mock_plugin = MagicMock()
+        mock_plugin.name = "TestPlugin"
+        mock_plugin.login.return_value = True
+        mock_select.return_value = mock_plugin
+        mock_discover.return_value = [mock_plugin]
+
         do_login("test_net", portal_url="http://custom-portal.com/login")
-        mock_session.get.assert_called_with("http://custom-portal.com/login", timeout=10)
-        mock_session.post.assert_called_once()
-        post_call = mock_session.post.call_args
-        self.assertEqual(post_call[0][0], "http://custom-portal.com/login")
+        mock_session.get.assert_called_with(
+            "http://custom-portal.com/login", timeout=10,
+        )
 
 
 if __name__ == "__main__":

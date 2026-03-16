@@ -1,11 +1,16 @@
 """
 Captive portal login engine.
 
-Handles the login flow for captive portals using a requests session:
-  1. Retrieve credentials from secure storage
-  2. Trigger the portal (get cookies)
-  3. Submit login form
-  4. Verify connectivity
+Performs the full login flow:
+  1. Check portal cache for fast-path login
+  2. Retrieve credentials from secure storage
+  3. Probe connectivity to detect portal
+  4. Select matching plugin via portal detection
+  5. Execute plugin login
+  6. Cache successful endpoint for future fast-path
+  7. Verify connectivity
+
+Integrates: plugins, parser, cache, credentials, probe.
 """
 
 from typing import Optional
@@ -14,12 +19,11 @@ import requests
 
 from captivity.core.credentials import retrieve, CredentialError
 from captivity.core.probe import probe_connectivity, ConnectivityStatus
+from captivity.core.cache import PortalCache, CacheEntry
+from captivity.plugins.loader import discover_plugins, select_plugin
 from captivity.utils.logging import get_logger
 
 logger = get_logger("login")
-
-# Default Pronto Networks portal endpoint
-DEFAULT_PORTAL = "http://phc.prontonetworks.com/cgi-bin/authlogin"
 
 
 class LoginError(Exception):
@@ -28,18 +32,21 @@ class LoginError(Exception):
 
 def do_login(
     network: str,
-    portal_url: str = DEFAULT_PORTAL,
+    portal_url: Optional[str] = None,
     dry_run: bool = False,
 ) -> bool:
-    """Perform a captive portal login.
+    """Perform a captive portal login using the plugin system.
 
-    Retrieves stored credentials for the network, triggers the portal
-    to obtain session cookies, submits the login form, and verifies
-    internet connectivity.
+    Flow:
+        1. Retrieve stored credentials
+        2. Try cached endpoint (fast path) if available
+        3. If no cache hit, probe for portal and use plugin detection
+        4. Cache endpoint on success
+        5. Verify connectivity
 
     Args:
         network: Network name for credential lookup.
-        portal_url: Portal login endpoint URL.
+        portal_url: Optional portal URL override.
         dry_run: If True, log actions without making requests.
 
     Returns:
@@ -49,7 +56,7 @@ def do_login(
         CredentialError: If credentials cannot be retrieved.
         LoginError: If login request fails.
     """
-    logger.info("Starting login for network '%s' via %s", network, portal_url)
+    logger.info("Starting login for network '%s'", network)
 
     # Step 1: Retrieve credentials
     try:
@@ -59,36 +66,110 @@ def do_login(
         raise
 
     if dry_run:
-        logger.info("[DRY-RUN] Would trigger portal: %s", portal_url)
-        logger.info("[DRY-RUN] Would submit login as: %s", username)
-        logger.info("[DRY-RUN] Would verify connectivity")
+        logger.info("[DRY-RUN] Would login as: %s", username)
         return True
 
     session = requests.Session()
+    cache = PortalCache()
 
-    # Step 2: Trigger portal (get cookies)
+    # Step 2: Try cached endpoint (fast path)
+    cached = cache.get(network)
+    if cached and not portal_url:
+        logger.info("Using cached endpoint: %s", cached.login_endpoint)
+        success = _login_via_cache(session, cached, username, password)
+        if success:
+            return _verify_login()
+        else:
+            logger.info("Cached login failed, falling back to full flow")
+            cache.remove(network)
+
+    # Step 3: Detect portal
+    actual_portal_url = portal_url
+    if not actual_portal_url:
+        _, redirect_url = probe_connectivity()
+        if redirect_url:
+            actual_portal_url = redirect_url
+        else:
+            logger.warning("No portal redirect detected")
+            return False
+
+    # Step 4: Fetch portal page and select plugin
     try:
-        logger.debug("Triggering portal at %s", portal_url)
-        session.get(portal_url, timeout=10)
+        logger.debug("Fetching portal page: %s", actual_portal_url)
+        response = session.get(actual_portal_url, timeout=10)
     except requests.exceptions.RequestException as exc:
         raise LoginError(f"Failed to reach portal: {exc}") from exc
 
-    # Step 3: Submit login form (Pronto Networks format)
-    login_data = {
-        "userId": username,
-        "password": password,
-        "serviceName": "ProntoAuthentication",
-        "Submit22": "Login",
-    }
+    plugins = discover_plugins()
+    plugin = select_plugin(response, plugins)
+
+    if not plugin:
+        raise LoginError("No plugin matched the captive portal")
+
+    logger.info("Using plugin: %s", plugin.name)
+
+    # Step 5: Execute plugin login
+    success = plugin.login(session, actual_portal_url, username, password)
+
+    if not success:
+        logger.warning("Plugin '%s' login returned failure", plugin.name)
+        return False
+
+    # Step 6: Cache endpoint on success
+    cache.store(CacheEntry(
+        network=network,
+        portal_url=actual_portal_url,
+        login_endpoint=actual_portal_url,
+        form_fields={},
+        username_field="",
+        password_field="",
+    ))
+
+    # Step 7: Verify connectivity
+    return _verify_login()
+
+
+def _login_via_cache(
+    session: requests.Session,
+    cached: CacheEntry,
+    username: str,
+    password: str,
+) -> bool:
+    """Attempt login using cached endpoint and form fields.
+
+    Args:
+        session: Requests session.
+        cached: Cached portal entry.
+        username: Login username.
+        password: Login password.
+
+    Returns:
+        True if cached login succeeded.
+    """
+    payload = dict(cached.form_fields)
+    if cached.username_field:
+        payload[cached.username_field] = username
+    if cached.password_field:
+        payload[cached.password_field] = password
 
     try:
-        logger.debug("Submitting login credentials")
-        response = session.post(portal_url, data=login_data, timeout=10)
-        logger.debug("Login response: HTTP %d", response.status_code)
+        response = session.post(
+            cached.login_endpoint,
+            data=payload,
+            timeout=10,
+        )
+        return response.status_code == 200
     except requests.exceptions.RequestException as exc:
-        raise LoginError(f"Login submission failed: {exc}") from exc
+        logger.warning("Cached login request failed: %s", exc)
+        return False
 
-    # Step 4: Verify connectivity
+
+def _verify_login() -> bool:
+    """Verify internet connectivity after login.
+
+    Returns:
+        True if connected to internet.
+    """
     status, _ = probe_connectivity()
 
     if status == ConnectivityStatus.CONNECTED:

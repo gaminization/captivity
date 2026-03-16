@@ -13,7 +13,7 @@
 | v0.7    | Dynamic portal login parsing       | ✅ Released  |
 | v0.8    | Plugin architecture                | ✅ Released  |
 | v0.9    | NetworkManager DBus events         | ✅ Released  |
-| v1.0    | Stable captive portal client       | 🔲 Planned  |
+| v1.0    | Stable captive portal client       | ✅ Released  |
 | v1.1    | Tray UI + notifications            | 🔲 Planned  |
 | v1.2    | Automatic network learning         | 🔲 Planned  |
 | v1.3    | Telemetry + bandwidth monitoring   | 🔲 Planned  |
@@ -26,6 +26,13 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.0 — 2026-03-16
+- Connection state machine (7 states)
+- Plugin-based login with cache fast-path
+- Event-driven daemon (bus + DBus + state machine)
+- Auto WiFi SSID detection, `captivity networks` CLI
+- 154 total tests (114 Python + 40 shell)
 
 ### v0.9 — 2026-03-16
 - Thread-safe event bus with subscribe/publish

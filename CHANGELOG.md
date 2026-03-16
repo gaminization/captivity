@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.0] — 2026-03-16
+
+### Added
+
+- `core/state.py` — connection state machine (INIT → CONNECTED lifecycle)
+- `captivity networks` CLI subcommand
+
+### Changed
+
+- `core/login.py` — rewritten for plugin-based portal login with cache fast-path
+- `daemon/runner.py` — integrates event bus, DBus monitor, state machine, auto-SSID
+- Version bumped to 1.0.0
+
+### Tests
+
+- `test_state.py` (12 tests), updated `test_login.py` (6 tests)
+- Total: 114 Python tests + 40 shell tests = 154 tests passing
+
+---
+
 ## [v0.9] — 2026-03-16
 
 ### Added

@@ -8,6 +8,7 @@ Provides subcommands:
     captivity daemon   — Run background reconnect loop
     captivity creds    — Manage stored credentials
     captivity plugins  — List available plugins
+    captivity networks — List known networks
 """
 
 import argparse
@@ -148,6 +149,31 @@ def cmd_plugins(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_networks(args: argparse.Namespace) -> int:
+    """Handle the 'networks' subcommand."""
+    from captivity.core.cache import PortalCache
+    from captivity.core.credentials import list_networks
+
+    cached_networks = set(PortalCache().list_networks())
+    cred_networks = set(list_networks())
+    all_networks = sorted(cached_networks | cred_networks)
+
+    if not all_networks:
+        print("No known networks.")
+        return 0
+
+    print(f"Known networks ({len(all_networks)}):")
+    for net in all_networks:
+        flags = []
+        if net in cred_networks:
+            flags.append("creds")
+        if net in cached_networks:
+            flags.append("cached")
+        print(f"  • {net}  [{', '.join(flags)}]")
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -206,6 +232,10 @@ def build_parser() -> argparse.ArgumentParser:
     # plugins
     plugins_parser = subparsers.add_parser("plugins", help="List available plugins")
     plugins_parser.set_defaults(func=cmd_plugins)
+
+    # networks
+    networks_parser = subparsers.add_parser("networks", help="List known networks")
+    networks_parser.set_defaults(func=cmd_networks)
 
     return parser
 
