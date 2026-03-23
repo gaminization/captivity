@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v1.4-green)
+![Status](https://img.shields.io/badge/status-v1.5-green)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,12 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v1.5 — Smart Retry System
+* Exponential backoff with jitter for login retries
+* Failure classification: transient, auth, rate-limited, portal-down
+* Circuit breaker (auto-opens on auth errors, auto-resets after cooldown)
+* Sliding window rate limiter
 
 ### v1.4 — Local Web Dashboard
 * Local dashboard at `http://localhost:8787`
@@ -291,7 +297,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v1.5 — Smart retry system.
+**Next:** v1.6 — Connection state machine enhancements.
 
 ---
 

@@ -18,7 +18,7 @@
 | v1.2    | Automatic network learning         | ✅ Released  |
 | v1.3    | Telemetry + bandwidth monitoring   | ✅ Released  |
 | v1.4    | Local web dashboard                | ✅ Released  |
-| v1.5    | Smart retry system                 | 🔲 Planned  |
+| v1.5    | Smart retry system                 | ✅ Released  |
 | v1.6    | Connection state machine           | 🔲 Planned  |
 | v1.7    | Portal simulator                   | 🔲 Planned  |
 | v1.8    | Plugin marketplace                 | 🔲 Planned  |
@@ -26,6 +26,12 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.5 — 2026-03-23
+- Smart retry engine with exponential backoff + jitter
+- Failure classification (transient/auth/rate-limited/portal-down)
+- Circuit breaker with auto-reset
+- 311 total tests (271 Python + 40 shell)
 
 ### v1.4 — 2026-03-23
 - Local web dashboard at `http://localhost:8787`

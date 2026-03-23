@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.5] — 2026-03-23
+
+### Added
+
+- `core/retry.py` — smart retry engine with adaptive backoff
+
+### Features
+
+- Exponential backoff with additive jitter
+- Failure classification: transient, auth, rate-limited, portal-down
+- Per-type backoff multipliers (rate-limited: 2x, portal-down: 3x)
+- Sliding window rate limiter (5 attempts per 60s default)
+- Circuit breaker: auto-opens on auth errors or max attempts, auto-resets
+- Error string classifier for automatic failure categorization
+
+### Tests
+
+- `test_retry.py` (22 tests)
+- Total: 271 Python tests + 40 shell tests = 311 tests passing
+
+---
+
 ## [v1.4] — 2026-03-23
 
 ### Added
