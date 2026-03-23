@@ -12,6 +12,7 @@ Provides subcommands:
     captivity tray     — Launch system tray icon
     captivity learn    — Manage learned network profiles
     captivity stats    — Show connection statistics
+    captivity dashboard — Launch local web dashboard
 """
 
 import argparse
@@ -300,6 +301,18 @@ def cmd_stats(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_dashboard(args: argparse.Namespace) -> int:
+    """Handle the 'dashboard' subcommand."""
+    from captivity.dashboard.server import DashboardServer
+
+    port = getattr(args, "port", 8787)
+    server = DashboardServer(port=port)
+    print(f"Starting dashboard at http://127.0.0.1:{port}")
+    print("Press Ctrl+C to stop.")
+    server.start(blocking=True)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -385,6 +398,11 @@ def build_parser() -> argparse.ArgumentParser:
     hist_p = stats_sub.add_parser("history", help="Show event history")
     hist_p.add_argument("--limit", type=int, default=20, help="Number of events")
     stats_parser.set_defaults(func=cmd_stats)
+
+    # dashboard
+    dash_parser = subparsers.add_parser("dashboard", help="Launch web dashboard")
+    dash_parser.add_argument("--port", type=int, default=8787, help="Dashboard port")
+    dash_parser.set_defaults(func=cmd_dashboard)
 
     return parser
 

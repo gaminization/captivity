@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.4] — 2026-03-23
+
+### Added
+
+- `dashboard/` subpackage — local web dashboard at `http://localhost:8787`
+- `dashboard/api.py` — JSON API (5 endpoints: status, stats, history, networks, bandwidth)
+- `dashboard/server.py` — stdlib HTTP server, localhost-only binding
+- `dashboard/page.py` — embedded dark-theme SPA with auto-refresh
+- `captivity dashboard` CLI subcommand (--port configurable)
+
+### Features
+
+- Dark theme with gradient accents, status cards, network table, event history
+- Auto-refresh every 5 seconds via fetch API
+- Zero external dependencies — built on Python’s http.server
+- Background thread mode for daemon integration
+
+### Tests
+
+- `test_dashboard_api.py` (15 tests), `test_dashboard_server.py` (5 integration tests)
+- Total: 247 Python tests + 40 shell tests = 287 tests passing
+
+---
+
 ## [v1.3] — 2026-03-23
 
 ### Added

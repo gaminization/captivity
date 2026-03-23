@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v1.3-green)
+![Status](https://img.shields.io/badge/status-v1.4-green)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,13 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v1.4 — Local Web Dashboard
+* Local dashboard at `http://localhost:8787`
+* Dark-theme SPA with auto-refresh (5s)
+* JSON API: status, stats, history, networks, bandwidth
+* Zero external dependencies (built on stdlib http.server)
+* `captivity dashboard` CLI command
 
 ### v1.3 — Telemetry + Bandwidth Monitoring
 * WiFi session uptime tracking
@@ -284,7 +291,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v1.4 — Local web dashboard.
+**Next:** v1.5 — Smart retry system.
 
 ---
 

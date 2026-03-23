@@ -17,7 +17,7 @@
 | v1.1    | Tray UI + notifications            | ✅ Released  |
 | v1.2    | Automatic network learning         | ✅ Released  |
 | v1.3    | Telemetry + bandwidth monitoring   | ✅ Released  |
-| v1.4    | Local web dashboard                | 🔲 Planned  |
+| v1.4    | Local web dashboard                | ✅ Released  |
 | v1.5    | Smart retry system                 | 🔲 Planned  |
 | v1.6    | Connection state machine           | 🔲 Planned  |
 | v1.7    | Portal simulator                   | 🔲 Planned  |
@@ -26,6 +26,13 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.4 — 2026-03-23
+- Local web dashboard at `http://localhost:8787`
+- Dark-theme SPA with auto-refresh (5s)
+- JSON API: status, stats, history, networks, bandwidth
+- `captivity dashboard` CLI command
+- 287 total tests (247 Python + 40 shell)
 
 ### v1.3 — 2026-03-23
 - WiFi session uptime tracking
