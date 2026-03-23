@@ -21,11 +21,17 @@
 | v1.5    | Smart retry system                 | ✅ Released  |
 | v1.6    | Connection state machine            | ✅ Released  |
 | v1.7    | Portal simulator                   | ✅ Released  |
-| v1.8    | Plugin marketplace                 | 🔲 Planned  |
+| v1.8    | Plugin marketplace                 | ✅ Released  |
 | v1.9    | Configuration system               | 🔲 Planned  |
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.8 — 2026-03-23
+- Plugin marketplace with 6 community plugin catalog
+- Local registry, search, pip install/uninstall
+- Enhanced CLI with search/install/uninstall/info
+- 367 total tests (327 Python + 40 shell)
 
 ### v1.7 — 2026-03-23
 - Portal simulator with 9 built-in scenarios

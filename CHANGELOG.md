@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.8] — 2026-03-23
+
+### Added
+
+- `plugins/registry.py` — local plugin registry (JSON persistence)
+  - PluginEntry dataclass with package, version, source, portal_types
+  - Register, unregister, list, persistence, corruption handling
+- `plugins/marketplace.py` — plugin marketplace
+  - Built-in catalog: Cisco, Aruba, CoovaChilli, Fortinet, MikroTik, UniFi
+  - Search by name, portal type, or keyword
+  - pip-based install/uninstall with registry tracking
+- Enhanced `captivity plugins` CLI:
+  - `plugins search [query]` — search marketplace
+  - `plugins install <package>` — install from PyPI
+  - `plugins uninstall <package>` — remove plugin
+  - `plugins info <package>` — show plugin details
+  - `plugins installed` — list marketplace plugins
+
+### Tests
+
+- `test_registry.py` (12 tests)
+- `test_marketplace.py` (14 tests)
+- Total: 327 Python tests + 40 shell tests = 367 tests passing
+
+---
+
 ## [v1.7] — 2026-03-23
 
 ### Added

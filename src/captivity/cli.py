@@ -139,18 +139,76 @@ def cmd_creds(args: argparse.Namespace) -> int:
 
 def cmd_plugins(args: argparse.Namespace) -> int:
     """Handle the 'plugins' subcommand."""
+    action = getattr(args, "plugins_action", None)
+
+    if action == "search":
+        from captivity.plugins.marketplace import Marketplace
+        mp = Marketplace()
+        query = getattr(args, "query", "")
+        results = mp.search(query)
+        if not results:
+            print(f"No plugins found for '{query}'.")
+            return 0
+        print(f"Marketplace plugins ({len(results)}):")
+        for p in results:
+            installed = mp.registry.is_installed(p.package)
+            mark = " [installed]" if installed else ""
+            print(f"  {p.package:40s} {p.description}{mark}")
+        return 0
+
+    if action == "install":
+        from captivity.plugins.marketplace import Marketplace
+        mp = Marketplace()
+        ok, msg = mp.install(args.package)
+        print(msg)
+        return 0 if ok else 1
+
+    if action == "uninstall":
+        from captivity.plugins.marketplace import Marketplace
+        mp = Marketplace()
+        ok, msg = mp.uninstall(args.package)
+        print(msg)
+        return 0 if ok else 1
+
+    if action == "info":
+        from captivity.plugins.marketplace import Marketplace
+        mp = Marketplace()
+        info = mp.get_info(args.package)
+        if not info:
+            print(f"Plugin {args.package} not found in catalog.")
+            return 1
+        installed = mp.registry.is_installed(info.package)
+        print(f"Package:     {info.package}")
+        print(f"Name:        {info.name}")
+        print(f"Description: {info.description}")
+        print(f"Version:     {info.version}")
+        print(f"Author:      {info.author}")
+        print(f"Portals:     {', '.join(info.portal_types)}")
+        print(f"URL:         {info.url}")
+        print(f"Installed:   {'yes' if installed else 'no'}")
+        return 0
+
+    if action == "installed":
+        from captivity.plugins.marketplace import Marketplace
+        mp = Marketplace()
+        entries = mp.list_installed()
+        if not entries:
+            print("No marketplace plugins installed.")
+        else:
+            print(f"Installed marketplace plugins ({len(entries)}):")
+            for e in entries:
+                print(f"  {e.package:40s} v{e.version}  {e.description}")
+        print()
+
+    # Default: list all discovered plugins (built-in + entry points)
     from captivity.plugins.loader import discover_plugins
-
     plugins = discover_plugins()
-
     if not plugins:
         print("No plugins found.")
         return 0
-
-    print(f"Available plugins ({len(plugins)}):")
+    print(f"Active plugins ({len(plugins)}):")
     for plugin in plugins:
         print(f"  [{plugin.priority:>4d}] {plugin.name}")
-
     return 0
 
 
@@ -404,7 +462,21 @@ def build_parser() -> argparse.ArgumentParser:
     creds_parser.set_defaults(func=cmd_creds)
 
     # plugins
-    plugins_parser = subparsers.add_parser("plugins", help="List available plugins")
+    plugins_parser = subparsers.add_parser(
+        "plugins", help="Manage plugins and marketplace",
+    )
+    plugins_sub = plugins_parser.add_subparsers(
+        dest="plugins_action", help="Plugin commands",
+    )
+    search_p = plugins_sub.add_parser("search", help="Search marketplace")
+    search_p.add_argument("query", nargs="?", default="", help="Search query")
+    install_p = plugins_sub.add_parser("install", help="Install a plugin")
+    install_p.add_argument("package", help="Plugin package name")
+    uninstall_p = plugins_sub.add_parser("uninstall", help="Uninstall a plugin")
+    uninstall_p.add_argument("package", help="Plugin package name")
+    info_p = plugins_sub.add_parser("info", help="Show plugin details")
+    info_p.add_argument("package", help="Plugin package name")
+    plugins_sub.add_parser("installed", help="List installed marketplace plugins")
     plugins_parser.set_defaults(func=cmd_plugins)
 
     # networks
