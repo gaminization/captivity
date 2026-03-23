@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.3] — 2026-03-23
+
+### Added
+
+- `telemetry/session.py` — WiFi session uptime tracking
+- `telemetry/bandwidth.py` — bandwidth monitoring via /proc/net/dev
+- `telemetry/stats.py` — persistent connection statistics database
+- `captivity stats` CLI subcommand (summary + history views)
+
+### Features
+
+- Per-network statistics: login success/failure rates, uptime, bandwidth
+- Connection event history (capped at 500 entries)
+- Zero-dependency bandwidth monitoring using kernel counters
+- Auto-detection of WiFi interface (wl* pattern)
+
+### Tests
+
+- `test_session.py` (14 tests), `test_bandwidth.py` (15 tests), `test_stats.py` (13 tests)
+- Total: 229 Python tests + 40 shell tests = 269 tests passing
+
+---
+
 ## [v1.2] — 2026-03-23
 
 ### Added

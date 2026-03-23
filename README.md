@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v1.2-green)
+![Status](https://img.shields.io/badge/status-v1.3-green)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,13 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v1.3 — Telemetry + Bandwidth Monitoring
+* WiFi session uptime tracking
+* Bandwidth usage monitoring via `/proc/net/dev` (zero deps)
+* Persistent per-network statistics (login rates, uptime, bandwidth)
+* Connection event history
+* `captivity stats` CLI command (summary + history)
 
 ### v1.2 — Automatic Network Learning
 * Network fingerprinting (gateway IP/MAC, portal domain, content hash)
@@ -277,7 +284,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v1.3 — Telemetry + bandwidth monitoring.
+**Next:** v1.4 — Local web dashboard.
 
 ---
 

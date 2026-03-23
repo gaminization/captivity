@@ -11,6 +11,7 @@ Provides subcommands:
     captivity networks — List known networks
     captivity tray     — Launch system tray icon
     captivity learn    — Manage learned network profiles
+    captivity stats    — Show connection statistics
 """
 
 import argparse
@@ -255,6 +256,49 @@ def cmd_learn(args: argparse.Namespace) -> int:
 
     return 0
 
+def cmd_stats(args: argparse.Namespace) -> int:
+    """Handle the 'stats' subcommand."""
+    from captivity.telemetry.stats import StatsDatabase
+    from captivity.telemetry.bandwidth import format_bytes
+    import time as _time
+
+    db = StatsDatabase()
+    action = getattr(args, "stats_action", None)
+
+    if action == "history":
+        events = db.get_history(limit=getattr(args, "limit", 20))
+        if not events:
+            print("No connection history.")
+            return 0
+        print(f"Recent events ({len(events)}):")
+        for e in events:
+            ts = _time.strftime("%Y-%m-%d %H:%M", _time.localtime(e.timestamp))
+            detail = f"  ({e.details})" if e.details else ""
+            print(f"  {ts}  {e.event_type:15s}  {e.network}{detail}")
+        return 0
+
+    # Default: summary
+    all_stats = db.get_all_stats()
+    if not all_stats:
+        print("No statistics recorded yet.")
+        return 0
+
+    print(f"Connection Statistics")
+    print(f"  Total logins:    {db.total_logins}")
+    hours = db.total_uptime / 3600
+    print(f"  Total uptime:    {hours:.1f} hours")
+    print(f"  Total bandwidth: {format_bytes(db.total_bandwidth)}")
+    print()
+    print("Per-network:")
+    for ns in all_stats:
+        rate = f"{ns.success_rate * 100:.0f}%" if (ns.login_successes + ns.login_failures) > 0 else "n/a"
+        print(f"  {ns.ssid}")
+        print(f"    logins: {ns.login_successes} ok / {ns.login_failures} fail ({rate})")
+        print(f"    uptime: {ns.total_uptime / 3600:.1f}h  bw: {format_bytes(ns.total_rx_bytes + ns.total_tx_bytes)}")
+        if ns.reconnect_count:
+            print(f"    reconnects: {ns.reconnect_count}")
+    return 0
+
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
@@ -334,6 +378,13 @@ def build_parser() -> argparse.ArgumentParser:
     forget_p = learn_sub.add_parser("forget", help="Forget a network")
     forget_p.add_argument("network", help="Network SSID")
     learn_parser.set_defaults(func=cmd_learn)
+
+    # stats
+    stats_parser = subparsers.add_parser("stats", help="Show connection statistics")
+    stats_sub = stats_parser.add_subparsers(dest="stats_action", help="Stats commands")
+    hist_p = stats_sub.add_parser("history", help="Show event history")
+    hist_p.add_argument("--limit", type=int, default=20, help="Number of events")
+    stats_parser.set_defaults(func=cmd_stats)
 
     return parser
 

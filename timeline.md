@@ -16,7 +16,7 @@
 | v1.0    | Stable captive portal client       | ✅ Released  |
 | v1.1    | Tray UI + notifications            | ✅ Released  |
 | v1.2    | Automatic network learning         | ✅ Released  |
-| v1.3    | Telemetry + bandwidth monitoring   | 🔲 Planned  |
+| v1.3    | Telemetry + bandwidth monitoring   | ✅ Released  |
 | v1.4    | Local web dashboard                | 🔲 Planned  |
 | v1.5    | Smart retry system                 | 🔲 Planned  |
 | v1.6    | Connection state machine           | 🔲 Planned  |
@@ -26,6 +26,13 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.3 — 2026-03-23
+- WiFi session uptime tracking
+- Bandwidth monitoring (/proc/net/dev)
+- Persistent connection statistics database
+- `captivity stats` CLI command
+- 269 total tests (229 Python + 40 shell)
 
 ### v1.2 — 2026-03-23
 - Network fingerprinting (gateway, portal domain, content hash)
