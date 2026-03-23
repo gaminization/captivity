@@ -4,4 +4,4 @@ Captivity — Autonomous Captive Portal Login Client
 Automatically detects and logs into WiFi captive portals.
 """
 
-__version__ = "1.8.0"
+__version__ = "1.9.0"

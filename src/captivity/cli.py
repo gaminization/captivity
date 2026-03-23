@@ -14,6 +14,7 @@ Provides subcommands:
     captivity stats    — Show connection statistics
     captivity dashboard — Launch local web dashboard
     captivity simulate — Run portal simulator for testing
+    captivity config   — Manage configuration
 """
 
 import argparse
@@ -406,6 +407,72 @@ def cmd_simulate(args: argparse.Namespace) -> int:
         sim.stop()
     return 0
 
+
+def cmd_config(args: argparse.Namespace) -> int:
+    """Handle the 'config' subcommand."""
+    from captivity.core.config import (
+        get_config, save_config, generate_default_config, _to_toml,
+        reset_config,
+    )
+
+    action = getattr(args, "config_action", None)
+
+    if action == "init":
+        path = generate_default_config()
+        print(f"Generated default config: {path}")
+        return 0
+
+    if action == "get":
+        config = get_config()
+        key_str = args.key
+        if "." not in key_str:
+            # Show entire section
+            try:
+                sec = getattr(config, key_str)
+                from dataclasses import fields as dc_fields
+                for f in dc_fields(sec):
+                    print(f"{key_str}.{f.name} = {getattr(sec, f.name)!r}")
+            except AttributeError:
+                print(f"Unknown section: {key_str}")
+                return 1
+            return 0
+        section, _, key = key_str.partition(".")
+        try:
+            val = config.get(section, key)
+            print(f"{key_str} = {val!r}")
+        except KeyError as exc:
+            print(str(exc))
+            return 1
+        return 0
+
+    if action == "set":
+        config = get_config()
+        key_str = args.key
+        value = args.value
+        if "." not in key_str:
+            print("Key must be section.key format (e.g. probe.url)")
+            return 1
+        section, _, key = key_str.partition(".")
+        try:
+            config.set(section, key, value)
+            save_config(config)
+            print(f"Set {key_str} = {config.get(section, key)!r}")
+        except KeyError as exc:
+            print(str(exc))
+            return 1
+        return 0
+
+    if action == "reset":
+        reset_config()
+        path = generate_default_config()
+        print(f"Config reset to defaults: {path}")
+        return 0
+
+    # Default: show all
+    config = get_config()
+    print(_to_toml(config))
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -527,6 +594,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="List available scenarios",
     )
     sim_parser.set_defaults(func=cmd_simulate)
+
+    # config
+    config_parser = subparsers.add_parser(
+        "config", help="Manage configuration",
+    )
+    config_sub = config_parser.add_subparsers(
+        dest="config_action", help="Config commands",
+    )
+    config_sub.add_parser("show", help="Show all config")
+    config_sub.add_parser("init", help="Generate default config file")
+    config_sub.add_parser("reset", help="Reset config to defaults")
+    get_p = config_sub.add_parser("get", help="Get a config value")
+    get_p.add_argument("key", help="Config key (section.key or section)")
+    set_p = config_sub.add_parser("set", help="Set a config value")
+    set_p.add_argument("key", help="Config key (section.key)")
+    set_p.add_argument("value", help="New value")
+    config_parser.set_defaults(func=cmd_config)
 
     return parser
 

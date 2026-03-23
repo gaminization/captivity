@@ -22,10 +22,15 @@
 | v1.6    | Connection state machine            | ✅ Released  |
 | v1.7    | Portal simulator                   | ✅ Released  |
 | v1.8    | Plugin marketplace                 | ✅ Released  |
-| v1.9    | Configuration system               | 🔲 Planned  |
+| v1.9    | Configuration system               | ✅ Released  |
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.9 — 2026-03-23
+- Layered config: defaults → TOML file → env vars
+- 8 typed sections, CLI show/get/set/init/reset
+- 401 total tests (361 Python + 40 shell)
 
 ### v1.8 — 2026-03-23
 - Plugin marketplace with 6 community plugin catalog

@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.9] — 2026-03-23
+
+### Added
+
+- `core/config.py` — layered configuration system
+  - 8 typed sections: probe, daemon, dashboard, simulator, plugins, telemetry, tray, login
+  - TOML file support (stdlib tomllib or fallback parser)
+  - Environment variable overrides (CAPTIVITY_SECTION_KEY)
+  - Type-safe coercion (str→int/float/bool)
+  - Singleton accessor, save/load/generate
+- `captivity config` CLI subcommand
+  - `config show` — display all settings
+  - `config get <key>` — read a value
+  - `config set <key> <value>` — write a value
+  - `config init` — generate default config file
+  - `config reset` — restore defaults
+
+### Tests
+
+- `test_config.py` (34 tests)
+- Total: 361 Python tests + 40 shell tests = 401 tests passing
+
+---
+
 ## [v1.8] — 2026-03-23
 
 ### Added
