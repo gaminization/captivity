@@ -10,6 +10,7 @@ Provides subcommands:
     captivity plugins  — List available plugins
     captivity networks — List known networks
     captivity tray     — Launch system tray icon
+    captivity learn    — Manage learned network profiles
 """
 
 import argparse
@@ -198,6 +199,63 @@ def cmd_tray(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_learn(args: argparse.Namespace) -> int:
+    """Handle the 'learn' subcommand."""
+    from captivity.core.profiles import ProfileDatabase
+
+    db = ProfileDatabase()
+    action = getattr(args, "learn_action", None)
+
+    if action == "list" or action is None:
+        profiles = db.list_profiles()
+        if not profiles:
+            print("No learned networks.")
+            return 0
+        print(f"Learned networks ({len(profiles)}):")
+        for p in profiles:
+            flags = []
+            if p.plugin_name:
+                flags.append(f"plugin={p.plugin_name}")
+            if p.has_portal_info:
+                flags.append("cached")
+            flags.append(f"logins={p.login_count}")
+            if p.days_since_login < float("inf"):
+                flags.append(f"{p.days_since_login:.0f}d ago")
+            print(f"  • {p.ssid}  [{', '.join(flags)}]")
+            if p.fingerprint.gateway_ip:
+                print(f"    gateway: {p.fingerprint.gateway_ip}")
+            if p.fingerprint.portal_domain:
+                print(f"    portal:  {p.fingerprint.portal_domain}")
+        return 0
+
+    elif action == "show":
+        profile = db.get(args.network)
+        if not profile:
+            print(f"No profile for '{args.network}'.")
+            return 1
+        print(f"Network: {profile.ssid}")
+        print(f"Plugin:  {profile.plugin_name or '(none)'}")
+        print(f"Logins:  {profile.login_count}")
+        fp = profile.fingerprint
+        if fp.gateway_ip:
+            print(f"Gateway: {fp.gateway_ip} ({fp.gateway_mac or 'MAC unknown'})")
+        if fp.portal_domain:
+            print(f"Portal:  {fp.portal_domain}")
+        if profile.login_endpoint:
+            print(f"Endpoint: {profile.login_endpoint}")
+        return 0
+
+    elif action == "forget":
+        if db.remove(args.network):
+            print(f"Forgot '{args.network}'.")
+            return 0
+        else:
+            print(f"No profile for '{args.network}'.")
+            return 1
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -266,6 +324,16 @@ def build_parser() -> argparse.ArgumentParser:
     tray_parser.add_argument("--network", "-n", default=None, help="Network name")
     tray_parser.add_argument("--no-notify", action="store_true", help="Disable notifications")
     tray_parser.set_defaults(func=cmd_tray)
+
+    # learn
+    learn_parser = subparsers.add_parser("learn", help="Manage learned networks")
+    learn_sub = learn_parser.add_subparsers(dest="learn_action", help="Learn commands")
+    learn_sub.add_parser("list", help="List learned networks")
+    show_p = learn_sub.add_parser("show", help="Show network profile")
+    show_p.add_argument("network", help="Network SSID")
+    forget_p = learn_sub.add_parser("forget", help="Forget a network")
+    forget_p.add_argument("network", help="Network SSID")
+    learn_parser.set_defaults(func=cmd_learn)
 
     return parser
 

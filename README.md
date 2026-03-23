@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v1.1-green)
+![Status](https://img.shields.io/badge/status-v1.2-green)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,12 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v1.2 — Automatic Network Learning
+* Network fingerprinting (gateway IP/MAC, portal domain, content hash)
+* Persistent profile database — learns networks on successful login
+* Weighted similarity matching for instant portal recognition
+* `captivity learn` CLI command (list, show, forget)
 
 ### v1.1 — Tray UI + Notifications
 * GTK3 system tray icon with event-driven status updates
@@ -271,7 +277,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v1.2 — Automatic network learning.
+**Next:** v1.3 — Telemetry + bandwidth monitoring.
 
 ---
 

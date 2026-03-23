@@ -15,7 +15,7 @@
 | v0.9    | NetworkManager DBus events         | ✅ Released  |
 | v1.0    | Stable captive portal client       | ✅ Released  |
 | v1.1    | Tray UI + notifications            | ✅ Released  |
-| v1.2    | Automatic network learning         | 🔲 Planned  |
+| v1.2    | Automatic network learning         | ✅ Released  |
 | v1.3    | Telemetry + bandwidth monitoring   | 🔲 Planned  |
 | v1.4    | Local web dashboard                | 🔲 Planned  |
 | v1.5    | Smart retry system                 | 🔲 Planned  |
@@ -26,6 +26,12 @@
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.2 — 2026-03-23
+- Network fingerprinting (gateway, portal domain, content hash)
+- Persistent network profile database with auto-learning
+- `captivity learn` CLI command (list/show/forget)
+- 218 total tests (178 Python + 40 shell)
 
 ### v1.1 — 2026-03-16
 - GTK3 system tray icon with event-driven status

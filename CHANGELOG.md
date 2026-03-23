@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.2] — 2026-03-23
+
+### Added
+
+- `core/fingerprint.py` — network fingerprinting (gateway IP/MAC, portal domain, content hash)
+- `core/profiles.py` — persistent network profile database with auto-learning
+- `captivity learn` CLI subcommand (list, show, forget)
+
+### Features
+
+- Weighted similarity matching for recognizing known networks
+- Automatic profile creation on successful login
+- Network profile stores: fingerprint, plugin preference, login history, cached endpoint
+- Fingerprint-based instant portal recognition
+
+### Tests
+
+- `test_fingerprint.py` (18 tests), `test_profiles.py` (16 tests)
+- Total: 178 Python tests + 40 shell tests = 218 tests passing
+
+---
+
 ## [v1.1] — 2026-03-16
 
 ### Added
