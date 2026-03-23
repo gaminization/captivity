@@ -1,9 +1,12 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v2.0-green)
+![Version](https://img.shields.io/badge/version-v2.0-blue)
+![Status](https://img.shields.io/badge/status-active-success)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![Tests](https://img.shields.io/badge/tests-428%20passing-brightgreen)
+![Platform](https://img.shields.io/badge/platform-Linux-informational)
 
-An autonomous login client for WiFi captive portals.
+> **An autonomous login client for WiFi captive portals.**
 
 Automatically logs into captive portal networks so you don't have to open a browser every time.
 
@@ -320,16 +323,18 @@ captivity/
 
 ---
 
-## Roadmap
+## Releases
 
-**Captivity v2.0** — Full roadmap complete. See [timeline.md](timeline.md) for details.
+All versions are tagged and published on the [GitHub Releases](https://github.com/gaminization/captivity/releases) page.
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed per-version release notes.
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, commit conventions, and branch strategy.
 
 ## License
 
-This project is licensed under the Apache 2.0 License.
+This project is licensed under the [Apache 2.0 License](LICENSE).
