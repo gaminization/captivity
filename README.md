@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v1.9-green)
+![Status](https://img.shields.io/badge/status-v2.0-green)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,12 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v2.0 — Rust Networking Daemon Core
+* High-performance Rust daemon for network monitoring and portal detection
+* Unix domain socket IPC with JSON protocol
+* Python bridge for seamless integration with existing CLI/plugins/UI
+* `captivity daemon-rs` CLI (start/status/stop/probe)
 
 ### v1.9 — Configuration System
 * Layered config: defaults → TOML file → environment variables
@@ -316,9 +322,7 @@ captivity/
 
 ## Roadmap
 
-See [timeline.md](timeline.md) for the full version roadmap.
-
-**Next:** v2.0 — Rust networking daemon core.
+**Captivity v2.0** — Full roadmap complete. See [timeline.md](timeline.md) for details.
 
 ---
 

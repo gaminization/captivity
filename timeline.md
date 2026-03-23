@@ -23,9 +23,14 @@
 | v1.7    | Portal simulator                   | ✅ Released  |
 | v1.8    | Plugin marketplace                 | ✅ Released  |
 | v1.9    | Configuration system               | ✅ Released  |
-| v2.0    | Rust networking daemon core        | 🔲 Planned  |
+| v2.0    | Rust networking daemon core        | ✅ Released  |
 
 ## Release History
+
+### v2.0 — 2026-03-24
+- Rust daemon: probe.rs, monitor.rs, ipc.rs, main.rs
+- Python bridge, `captivity daemon-rs` CLI
+- 428 total tests (377 Python + 40 shell + 11 Rust)
 
 ### v1.9 — 2026-03-23
 - Layered config: defaults → TOML file → env vars

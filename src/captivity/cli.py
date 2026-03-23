@@ -15,6 +15,7 @@ Provides subcommands:
     captivity dashboard — Launch local web dashboard
     captivity simulate — Run portal simulator for testing
     captivity config   — Manage configuration
+    captivity daemon-rs — Launch Rust networking daemon
 """
 
 import argparse
@@ -473,6 +474,63 @@ def cmd_config(args: argparse.Namespace) -> int:
     print(_to_toml(config))
     return 0
 
+
+def cmd_daemon_rs(args: argparse.Namespace) -> int:
+    """Handle the 'daemon-rs' subcommand."""
+    from captivity.daemon.bridge import (
+        DaemonBridge, start_daemon, _find_daemon_binary,
+    )
+
+    action = getattr(args, "daemon_rs_action", None)
+
+    if action == "status":
+        bridge = DaemonBridge()
+        if bridge.connect():
+            status = bridge.get_status()
+            print(f"Daemon status: {status}")
+        else:
+            print("Daemon not running")
+        return 0
+
+    if action == "stop":
+        bridge = DaemonBridge()
+        if bridge.connect():
+            bridge.stop_daemon()
+            print("Stop command sent")
+        else:
+            print("Daemon not running")
+        return 0
+
+    if action == "probe":
+        bridge = DaemonBridge()
+        if bridge.connect():
+            bridge.request_probe()
+            status = bridge.get_status()
+            print(f"Probe result: {status}")
+        else:
+            print("Daemon not running")
+        return 0
+
+    # Default: start daemon
+    binary = _find_daemon_binary()
+    if not binary:
+        print("captivity-daemon binary not found.")
+        print("Build it with: cd daemon-rs && cargo build --release")
+        return 1
+
+    proc = start_daemon()
+    if proc:
+        print(f"Rust daemon started (PID {proc.pid})")
+        try:
+            proc.wait()
+        except KeyboardInterrupt:
+            proc.terminate()
+            print("\nDaemon stopped")
+        return 0
+    else:
+        print("Failed to start daemon")
+        return 1
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -611,6 +669,18 @@ def build_parser() -> argparse.ArgumentParser:
     set_p.add_argument("key", help="Config key (section.key)")
     set_p.add_argument("value", help="New value")
     config_parser.set_defaults(func=cmd_config)
+
+    # daemon-rs
+    drs_parser = subparsers.add_parser(
+        "daemon-rs", help="Launch Rust networking daemon",
+    )
+    drs_sub = drs_parser.add_subparsers(
+        dest="daemon_rs_action", help="Daemon commands",
+    )
+    drs_sub.add_parser("status", help="Query daemon status")
+    drs_sub.add_parser("stop", help="Stop the daemon")
+    drs_sub.add_parser("probe", help="Request immediate probe")
+    drs_parser.set_defaults(func=cmd_daemon_rs)
 
     return parser
 

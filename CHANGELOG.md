@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v2.0] — 2026-03-24
+
+### Added
+
+- `daemon-rs/` — Rust networking daemon core
+  - `src/probe.rs` — HTTP 204 connectivity probing
+  - `src/monitor.rs` — Network state tracking with event emission
+  - `src/ipc.rs` — Unix domain socket IPC server (JSON protocol)
+  - `src/main.rs` — Event loop, CLI args, signal handling
+  - Minimal deps: ureq, serde, serde_json
+  - Release profile: LTO, strip, size-optimized
+- `daemon/bridge.py` — Python ↔ Rust IPC bridge
+  - Unix socket client with JSON commands
+  - Event subscription with background thread
+  - Daemon process launcher
+- `captivity daemon-rs` CLI subcommand
+  - `daemon-rs` — start Rust daemon
+  - `daemon-rs status` — query connectivity
+  - `daemon-rs stop` — stop daemon
+  - `daemon-rs probe` — request immediate probe
+
+### Tests
+
+- `test_bridge.py` (16 tests) — Python bridge with mock socket server
+- Rust unit tests (11 tests in probe/monitor/ipc modules)
+- Total: 377 Python tests + 40 shell + 11 Rust = 428 tests
+
+---
+
 ## [v1.9] — 2026-03-23
 
 ### Added
