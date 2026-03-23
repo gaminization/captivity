@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.7] — 2026-03-23
+
+### Added
+
+- `testing/` subpackage for portal simulation
+- `testing/simulator.py` — captive portal emulator using stdlib http.server
+  - Login pages, HTTP 302 redirects, connectivity probes (204)
+  - Session management with configurable expiry
+  - Rate limiting, flaky failure simulation
+  - Terms acceptance, custom form fields
+  - JSON status and scenario info endpoints
+  - Context manager support for test automation
+- `testing/scenarios.py` — 9 built-in test scenarios
+  - simple, terms, redirect, session_expiry, rate_limited
+  - flaky, slow, custom_fields, email_only
+- `captivity simulate` CLI subcommand with --port, --scenario, --list
+
+### Tests
+
+- `test_scenarios.py` (13 tests)
+- `test_simulator.py` (13 integration tests)
+- Total: 297 Python tests + 40 shell tests = 337 tests passing
+
+---
+
 ## [v1.6] — 2026-03-23
 
 ### Enhanced

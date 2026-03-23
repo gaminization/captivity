@@ -13,6 +13,7 @@ Provides subcommands:
     captivity learn    — Manage learned network profiles
     captivity stats    — Show connection statistics
     captivity dashboard — Launch local web dashboard
+    captivity simulate — Run portal simulator for testing
 """
 
 import argparse
@@ -313,6 +314,40 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_simulate(args: argparse.Namespace) -> int:
+    """Handle the 'simulate' subcommand."""
+    from captivity.testing.scenarios import SCENARIOS
+    from captivity.testing.simulator import PortalSimulator
+
+    if getattr(args, "list_scenarios", False):
+        print("Available scenarios:")
+        for name, s in sorted(SCENARIOS.items()):
+            print(f"  {name:16s}  {s.description}")
+        return 0
+
+    scenario_name = getattr(args, "scenario", "simple")
+    if scenario_name not in SCENARIOS:
+        print(f"Unknown scenario: {scenario_name}")
+        print(f"Available: {', '.join(sorted(SCENARIOS))}")
+        return 1
+
+    port = getattr(args, "port", 9090)
+    scenario = SCENARIOS[scenario_name]
+    sim = PortalSimulator(scenario=scenario, port=port)
+    print(f"Starting portal simulator at http://127.0.0.1:{port}")
+    print(f"Scenario: {scenario.name} — {scenario.description}")
+    print("Press Ctrl+C to stop.")
+    sim.start()
+    try:
+        import time as _t
+        while True:
+            _t.sleep(1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        sim.stop()
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -403,6 +438,23 @@ def build_parser() -> argparse.ArgumentParser:
     dash_parser = subparsers.add_parser("dashboard", help="Launch web dashboard")
     dash_parser.add_argument("--port", type=int, default=8787, help="Dashboard port")
     dash_parser.set_defaults(func=cmd_dashboard)
+
+    # simulate
+    sim_parser = subparsers.add_parser(
+        "simulate", help="Run portal simulator for testing",
+    )
+    sim_parser.add_argument(
+        "--port", type=int, default=9090, help="Simulator port (default: 9090)",
+    )
+    sim_parser.add_argument(
+        "--scenario", default="simple",
+        help="Scenario name (default: simple)",
+    )
+    sim_parser.add_argument(
+        "--list", dest="list_scenarios", action="store_true",
+        help="List available scenarios",
+    )
+    sim_parser.set_defaults(func=cmd_simulate)
 
     return parser
 

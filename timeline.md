@@ -20,12 +20,18 @@
 | v1.4    | Local web dashboard                | ✅ Released  |
 | v1.5    | Smart retry system                 | ✅ Released  |
 | v1.6    | Connection state machine            | ✅ Released  |
-| v1.7    | Portal simulator                   | 🔲 Planned  |
+| v1.7    | Portal simulator                   | ✅ Released  |
 | v1.8    | Plugin marketplace                 | 🔲 Planned  |
 | v1.9    | Configuration system               | 🔲 Planned  |
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.7 — 2026-03-23
+- Portal simulator with 9 built-in scenarios
+- Login, redirect, session expiry, rate limiting emulation
+- `captivity simulate` CLI subcommand
+- 337 total tests (297 Python + 40 shell)
 
 ### v1.6 — 2026-03-23
 - Enhanced state machine: RETRY_WAIT state, transition history

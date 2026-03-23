@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v1.6-green)
+![Status](https://img.shields.io/badge/status-v1.7-green)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,11 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v1.7 — Portal Simulator
+* Portal simulator for plugin testing (9 built-in scenarios)
+* Login, redirect, session expiry, rate-limiting emulation
+* `captivity simulate` CLI with --scenario and --list
 
 ### v1.6 — Connection State Machine v2
 * RETRY_WAIT state for smart retry integration
@@ -303,7 +308,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v1.7 — Portal simulator testing environment.
+**Next:** v1.8 — Plugin marketplace.
 
 ---
 
