@@ -15,7 +15,7 @@ class TestConnectionState(unittest.TestCase):
 
     def test_all_states_defined(self):
         states = list(ConnectionState)
-        self.assertEqual(len(states), 7)
+        self.assertEqual(len(states), 8)
         self.assertIn(ConnectionState.INIT, states)
         self.assertIn(ConnectionState.CONNECTED, states)
 

@@ -1,6 +1,6 @@
 # Captivity
 
-![Status](https://img.shields.io/badge/status-v1.5-green)
+![Status](https://img.shields.io/badge/status-v1.6-green)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 An autonomous login client for WiFi captive portals.
@@ -25,6 +25,12 @@ Captivity removes this manual step by automating the login process.
 ---
 
 ## Features
+
+### v1.6 — Connection State Machine v2
+* RETRY_WAIT state for smart retry integration
+* Transition history tracking (100 records max)
+* State duration measurement and per-state analytics
+* Auto retry engine + event bus integration on transitions
 
 ### v1.5 — Smart Retry System
 * Exponential backoff with jitter for login retries
@@ -297,7 +303,7 @@ captivity/
 
 See [timeline.md](timeline.md) for the full version roadmap.
 
-**Next:** v1.6 — Connection state machine enhancements.
+**Next:** v1.7 — Portal simulator testing environment.
 
 ---
 

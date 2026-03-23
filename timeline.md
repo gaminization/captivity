@@ -19,13 +19,19 @@
 | v1.3    | Telemetry + bandwidth monitoring   | ✅ Released  |
 | v1.4    | Local web dashboard                | ✅ Released  |
 | v1.5    | Smart retry system                 | ✅ Released  |
-| v1.6    | Connection state machine           | 🔲 Planned  |
+| v1.6    | Connection state machine            | ✅ Released  |
 | v1.7    | Portal simulator                   | 🔲 Planned  |
 | v1.8    | Plugin marketplace                 | 🔲 Planned  |
 | v1.9    | Configuration system               | 🔲 Planned  |
 | v2.0    | Rust networking daemon core        | 🔲 Planned  |
 
 ## Release History
+
+### v1.6 — 2026-03-23
+- Enhanced state machine: RETRY_WAIT state, transition history
+- State duration tracking, retry engine integration
+- Event bus auto-publishing on transitions
+- 311 total tests (271 Python + 40 shell)
 
 ### v1.5 — 2026-03-23
 - Smart retry engine with exponential backoff + jitter

@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v1.6] — 2026-03-23
+
+### Enhanced
+
+- `core/state.py` — connection state machine v2
+  - New RETRY_WAIT state for smart retry integration
+  - Transition history tracking (capped at 100 records)
+  - State duration measurement per transition
+  - RetryEngine auto-integration (success/failure recording)
+  - Event bus auto-publishing on state transitions
+  - `TransitionRecord` dataclass for typed history
+  - New properties: `is_waiting`, `state_duration`, `transition_count`
+  - `get_state_stats()` for per-state time analysis
+  - Full backward compatibility with v1.0 API
+
+### Tests
+
+- Updated `test_state.py` for 8 states
+- Total: 271 Python tests + 40 shell tests = 311 tests passing
+
+---
+
 ## [v1.5] — 2026-03-23
 
 ### Added
