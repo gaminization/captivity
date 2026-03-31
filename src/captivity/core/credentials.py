@@ -154,7 +154,9 @@ def list_networks() -> list[str]:
         )
 
         networks = set()
-        for line in result.stdout.splitlines():
+        # secret-tool writes attributes to stderr on some versions
+        combined = (result.stdout or "") + "\n" + (result.stderr or "")
+        for line in combined.splitlines():
             if f"attribute.{ATTR_NETWORK}" in line:
                 value = line.split("=", 1)[-1].strip()
                 if value:

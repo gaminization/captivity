@@ -87,13 +87,18 @@ class TestCredentials(unittest.TestCase):
     def test_list_networks_parses_output(self, mock_run, mock_which):
         """List parses secret-tool search output for network names."""
         result = MagicMock()
+        # secret-tool writes metadata to stdout, attributes to stderr
         result.stdout = (
             "[/org/freedesktop/secrets/1]\n"
+            "label = captivity-campus_wifi-username\n"
+            "\n"
+            "[/org/freedesktop/secrets/2]\n"
+            "label = captivity-coffee_shop-password\n"
+        )
+        result.stderr = (
             "attribute.application = captivity\n"
             "attribute.network = campus_wifi\n"
             "attribute.field = username\n"
-            "\n"
-            "[/org/freedesktop/secrets/2]\n"
             "attribute.application = captivity\n"
             "attribute.network = coffee_shop\n"
             "attribute.field = password\n"
@@ -110,6 +115,7 @@ class TestCredentials(unittest.TestCase):
         """List returns empty list when no credentials stored."""
         result = MagicMock()
         result.stdout = ""
+        result.stderr = ""
         result.returncode = 0
         mock_run.return_value = result
 
