@@ -1,4 +1,4 @@
-name: Captivity CI
+name: Captivity CI v2
 
 on:
   push:
