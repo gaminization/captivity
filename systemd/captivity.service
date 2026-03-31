@@ -6,13 +6,12 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# Python core (v0.6+) — preferred
-ExecStart=/usr/bin/python3 -m captivity daemon --network ${CAPTIVITY_NETWORK}
-# Legacy shell fallback (uncomment to use v0.5 shell scripts):
-# ExecStart=/opt/captivity/scripts/captivity-reconnect.sh --daemon
+# Use the pip-installed CLI entry point
+# Adjust path if installed system-wide: /usr/local/bin/captivity
+ExecStart=%h/.local/bin/captivity daemon
 Restart=on-failure
 RestartSec=10
-EnvironmentFile=-/etc/captivity/config
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
 
 # Logging
 StandardOutput=journal
@@ -27,4 +26,4 @@ PrivateTmp=yes
 ReadWritePaths=/tmp
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
