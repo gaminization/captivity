@@ -101,7 +101,7 @@ The daemon runs this pipeline continuously, reacting to network changes via D-Bu
 ### pip (recommended)
 
 ```bash
-pip install captivity
+pip install captivity-cli
 ```
 
 ### Homebrew
