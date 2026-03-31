@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v2.1] — 2026-03-31
+
+### Added
+
+- GitHub Actions CI pipeline (lint, test, coverage)
+- PyPI publishing workflow (triggered on GitHub Release)
+- CodeQL security scanning (Python, on push + PR)
+- Automated version bump workflow (patch/minor/major)
+- SECURITY.md with responsible disclosure policy
+
+### Improved
+
+- pyproject.toml upgraded to Production/Stable with full metadata
+- README rewritten to top-tier open-source standard
+- Dynamic CI badge (GitHub Actions workflow status)
+- Commit history restructured for engineering depth
+
+### Notes
+
+- No changes to core application logic
+- Fully backward compatible with v2.0
+
+---
+
 ## [v2.0] — 2026-03-24
 
 ### Added
