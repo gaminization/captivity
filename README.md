@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/gaminization/captivity/releases"><img src="https://img.shields.io/badge/version-2.1.0-blue?style=flat-square" alt="Version"></a>
-  <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/gaminization/captivity/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+  <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/gaminization/captivity/ci.yml?branch=main&style=flat-square&label=tests" alt="CI"></a>
   <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-tested-green?style=flat-square" alt="Coverage"></a>
   <a href="https://github.com/gaminization/captivity/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-orange?style=flat-square" alt="License"></a>
   <a href="https://pypi.org/project/captivity/"><img src="https://img.shields.io/badge/python-3.8%2B-yellow?style=flat-square" alt="Python"></a>
@@ -133,24 +133,33 @@ captivity --help
 ### Quick Start
 
 ```bash
-# One-shot login
-captivity login
+# One-shot login (--network is required)
+captivity login --network "Airport WiFi"
 
 # Check connectivity status
 captivity status
 
+# Test connectivity probe
+captivity probe
+
 # Run as background daemon
-captivity daemon
+captivity daemon --network "Airport WiFi"
 ```
 
 ### Credential Management
 
 ```bash
-# Store credentials for a network
-captivity creds set --network "Airport WiFi" --username user --password pass
+# Store credentials (prompts for username and password)
+captivity creds store "Airport WiFi"
 
 # List stored networks
 captivity creds list
+
+# Retrieve stored credentials
+captivity creds retrieve "Airport WiFi"
+
+# Delete credentials
+captivity creds delete "Airport WiFi"
 ```
 
 ### Configuration
