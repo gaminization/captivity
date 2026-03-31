@@ -116,6 +116,7 @@ brew install captivity
 ```bash
 git clone https://github.com/gaminization/captivity.git
 cd captivity
+pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
