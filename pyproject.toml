@@ -4,23 +4,37 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "captivity"
-version = "0.6.0"
-description = "Autonomous captive portal login client"
+version = "2.0.0"
+description = "Autonomous captive portal login client — never open a browser to log into WiFi again"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.8"
 authors = [
     {name = "garvarora"},
 ]
-keywords = ["captive-portal", "wifi", "automation", "networkmanager"]
+keywords = [
+    "captive-portal",
+    "wifi",
+    "automation",
+    "networkmanager",
+    "login",
+    "daemon",
+]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: System Administrators",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: System :: Networking",
+    "Topic :: System :: Systems Administration",
 ]
 dependencies = [
     "requests>=2.20",
@@ -29,7 +43,15 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pylint>=2.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/gaminization/captivity"
+Repository = "https://github.com/gaminization/captivity"
+Issues = "https://github.com/gaminization/captivity/issues"
+Changelog = "https://github.com/gaminization/captivity/blob/main/CHANGELOG.md"
 
 [project.scripts]
 captivity = "captivity.cli:main"
@@ -39,3 +61,6 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
+
+[tool.pylint.messages_control]
+disable = ["C", "R", "W"]
