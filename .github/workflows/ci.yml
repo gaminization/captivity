@@ -5,13 +5,17 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  checks: write
+  contents: read
+
 jobs:
   test:
-    name: test
+    name: CI / test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -25,5 +29,30 @@ jobs:
       - name: Lint
         run: pylint src/captivity --disable=all --enable=E --exit-zero
 
-      - name: Test with coverage
+      - name: Run tests with coverage
         run: pytest --cov=captivity --cov-report=xml --cov-report=term -q
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: coverage.xml
+
+      - name: Register check via GitHub API
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "CI / test",
+              head_sha: context.sha,
+              status: "completed",
+              conclusion: "${{ job.status }}",
+              output: {
+                title: "CI ${{ job.status }}",
+                summary: "Tests completed with status: ${{ job.status }}"
+              }
+            });
