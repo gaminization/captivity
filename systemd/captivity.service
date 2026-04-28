@@ -7,11 +7,14 @@ Wants=network-online.target
 [Service]
 Type=simple
 # Use the pip-installed CLI entry point
-# Adjust path if installed system-wide: /usr/local/bin/captivity
+# For system-wide install, change to: /usr/local/bin/captivity daemon
 ExecStart=%h/.local/bin/captivity daemon
 Restart=on-failure
 RestartSec=10
+# Allow reading credentials from user keyring
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+# Load network config (optional)
+EnvironmentFile=-%h/.config/captivity/env
 
 # Logging
 StandardOutput=journal
@@ -23,7 +26,7 @@ NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=read-only
 PrivateTmp=yes
-ReadWritePaths=/tmp
+ReadWritePaths=/tmp %h/.local/share/captivity
 
 [Install]
 WantedBy=default.target

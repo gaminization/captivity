@@ -2,7 +2,7 @@
 # =============================================================================
 # captivity-dispatcher.sh — NetworkManager Dispatcher Hook for Captivity
 # Part of the Captivity project (https://github.com/gaminization/captivity)
-# Version: v0.4
+# Version: v2.1
 #
 # NetworkManager dispatcher script that triggers automatic captive portal
 # login when WiFi connects or connectivity changes.
@@ -13,22 +13,15 @@
 #   $1 = interface name (e.g., wlan0, wlp2s0)
 #   $2 = action (up, down, connectivity-change, etc.)
 #
-# Dependencies: scripts/captivity-login.sh, scripts/captivity-reconnect.sh
+# Dependencies: captivity CLI (pip install captivity-cli)
+# Fallback:     scripts/captivity-reconnect.sh (if CLI not installed)
 # =============================================================================
 
 set -euo pipefail
 
 # --- Constants ---------------------------------------------------------------
 readonly PROG="captivity-dispatcher"
-readonly CAPTIVITY_DIR="${CAPTIVITY_DIR:-/opt/captivity}"
-readonly RECONNECT_SCRIPT="${CAPTIVITY_DIR}/scripts/captivity-reconnect.sh"
 readonly LOG_TAG="captivity"
-
-# --- Configuration -----------------------------------------------------------
-# Network to auto-login (can be overridden via /etc/captivity/config)
-CAPTIVITY_NETWORK="${CAPTIVITY_NETWORK:-}"
-CAPTIVITY_PORTAL="${CAPTIVITY_PORTAL:-}"
-CAPTIVITY_CONFIG="/etc/captivity/config"
 
 # --- Logging -----------------------------------------------------------------
 log_info() {
@@ -41,14 +34,6 @@ log_error() {
 
 log_debug() {
     logger -t "${LOG_TAG}" -p daemon.debug "$*"
-}
-
-# --- Load Config -------------------------------------------------------------
-load_config() {
-    if [[ -f "${CAPTIVITY_CONFIG}" ]]; then
-        # shellcheck source=/dev/null
-        source "${CAPTIVITY_CONFIG}"
-    fi
 }
 
 # --- Interface Check ---------------------------------------------------------
@@ -80,23 +65,24 @@ trigger_login() {
     # Small delay to allow network stack to settle
     sleep 2
 
-    if [[ -x "${RECONNECT_SCRIPT}" ]]; then
-        local args=(--once)
+    # Prefer the Python CLI (v0.6+)
+    if command -v captivity &>/dev/null; then
+        log_info "Running captivity probe + auto-login..."
+        captivity login --auto 2>&1 | while read -r line; do
+            log_info "${line}"
+        done
+        return
+    fi
 
-        if [[ -n "${CAPTIVITY_NETWORK}" ]]; then
-            args+=(--network "${CAPTIVITY_NETWORK}")
-        fi
-
-        if [[ -n "${CAPTIVITY_PORTAL}" ]]; then
-            args+=(--portal "${CAPTIVITY_PORTAL}")
-        fi
-
-        log_info "Running connectivity probe..."
-        "${RECONNECT_SCRIPT}" "${args[@]}" 2>&1 | while read -r line; do
+    # Fallback: legacy shell scripts
+    local reconnect_script="${CAPTIVITY_DIR:-/opt/captivity}/scripts/captivity-reconnect.sh"
+    if [[ -x "${reconnect_script}" ]]; then
+        log_info "Falling back to shell reconnect script..."
+        "${reconnect_script}" --once 2>&1 | while read -r line; do
             log_info "${line}"
         done
     else
-        log_error "Reconnect script not found: ${RECONNECT_SCRIPT}"
+        log_error "Neither captivity CLI nor reconnect script found"
     fi
 }
 
@@ -119,9 +105,6 @@ main() {
         log_debug "Ignoring non-WiFi interface: ${iface}"
         exit 0
     fi
-
-    # Load configuration
-    load_config
 
     # Handle relevant actions
     case "${action}" in

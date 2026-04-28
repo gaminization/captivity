@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Captivity
+GenericName=WiFi Portal Login
+Comment=Autonomous captive portal login — never open a browser to log into WiFi again
+Exec=captivity tray
+Icon=network-wireless
+Terminal=false
+Categories=Network;System;Monitor;
+Keywords=wifi;captive;portal;login;network;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
