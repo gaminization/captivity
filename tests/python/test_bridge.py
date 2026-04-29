@@ -7,7 +7,7 @@ import tempfile
 import threading
 import time
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from captivity.daemon.bridge import (
     DaemonBridge,
@@ -15,7 +15,7 @@ from captivity.daemon.bridge import (
     _find_daemon_binary,
     start_daemon,
 )
-from captivity.daemon.events import Event, EventBus
+from captivity.daemon.events import Event
 
 
 class TestDefaultSocketPath(unittest.TestCase):
@@ -98,6 +98,7 @@ class TestDaemonBridgeWithServer(unittest.TestCase):
 
     def _start_mock_server(self):
         """Start a mock daemon server."""
+
         def server_loop():
             server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             server.bind(self.socket_path)
@@ -181,7 +182,8 @@ class TestEventMapping(unittest.TestCase):
         }
         for rust_name in rust_events:
             self.assertIn(
-                rust_name, expected_python,
+                rust_name,
+                expected_python,
                 f"Missing mapping for {rust_name}",
             )
 

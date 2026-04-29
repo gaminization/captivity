@@ -41,9 +41,7 @@ class TestRetryIntegration:
 
         # Each delay should be >= previous (exponential growth)
         for i in range(1, len(delays)):
-            assert delays[i] >= delays[i-1], (
-                f"Delay not growing: {delays}"
-            )
+            assert delays[i] >= delays[i - 1], f"Delay not growing: {delays}"
 
     def test_success_resets_state(self):
         """Recording success should reset retry state."""
@@ -67,13 +65,15 @@ class TestRetryIntegration:
 
     def test_circuit_breaker_resets_after_timeout(self):
         """Circuit breaker should reset after circuit_reset_time."""
-        engine = self._make_engine(circuit_reset_time=0.5)
+        # Use short rate_limit_window too, otherwise _attempt_times
+        # from the 5 failures still trigger the rate limiter
+        engine = self._make_engine(circuit_reset_time=0.5, rate_limit_window=0.5)
         for _ in range(5):
             engine.record_failure(FailureType.TRANSIENT)
 
         assert engine.state == RetryState.CIRCUIT_OPEN
 
-        # Wait for reset
+        # Wait for both circuit reset AND rate limit window to expire
         time.sleep(0.6)
         assert engine.should_retry()
 
@@ -101,17 +101,17 @@ class TestRetryIntegration:
 
     def test_delay_with_jitter_varies(self):
         """Delays with jitter should vary between calls."""
-        engine = RetryEngine(RetryConfig(
-            initial_delay=1.0,
-            max_delay=10.0,
-            multiplier=2.0,
-            jitter=0.5,  # 50% jitter
-            max_attempts=10,
-        ))
+        engine = RetryEngine(
+            RetryConfig(
+                initial_delay=1.0,
+                max_delay=10.0,
+                multiplier=2.0,
+                jitter=0.5,  # 50% jitter
+                max_attempts=10,
+            )
+        )
         engine.record_failure(FailureType.TRANSIENT)
-        delays = [engine.get_delay() for _ in range(50)]
-        unique = set(delays)
-        # With 50% jitter, delays should have variation
+        # We do not need the initial 50 delays because get_delay reads _current_delay which is set once per failure
         # But get_delay reads _current_delay which is set once per failure
         # So we need to re-fail to get new delays
         engine.record_success()
@@ -136,9 +136,7 @@ class TestRetryIntegration:
         e2.record_failure(FailureType.RATE_LIMITED)
         d2 = e2.get_delay()
 
-        assert d2 >= d1, (
-            f"Rate-limited delay ({d2}) should be >= transient ({d1})"
-        )
+        assert d2 >= d1, f"Rate-limited delay ({d2}) should be >= transient ({d1})"
 
     def test_get_delay_returns_neg_when_circuit_open(self):
         """get_delay should return -1 when circuit is open."""

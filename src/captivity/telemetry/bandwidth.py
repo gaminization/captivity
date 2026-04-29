@@ -71,7 +71,9 @@ def format_bytes(n: int) -> str:
     return f"{n:.1f} PB"
 
 
-def read_interface_stats(interface: str, proc_path: str = PROC_NET_DEV) -> Optional[InterfaceStats]:
+def read_interface_stats(
+    interface: str, proc_path: str = PROC_NET_DEV
+) -> Optional[InterfaceStats]:
     """Read current byte counters for a network interface.
 
     Parses /proc/net/dev which contains kernel-level
@@ -142,7 +144,9 @@ class BandwidthMonitor:
         baseline: Byte counters at session start.
     """
 
-    def __init__(self, interface: Optional[str] = None, proc_path: str = PROC_NET_DEV) -> None:
+    def __init__(
+        self, interface: Optional[str] = None, proc_path: str = PROC_NET_DEV
+    ) -> None:
         self.interface = interface or detect_wifi_interface(proc_path) or ""
         self._proc_path = proc_path
         self.baseline: Optional[InterfaceStats] = None

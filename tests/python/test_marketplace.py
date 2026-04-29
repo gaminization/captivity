@@ -102,7 +102,8 @@ class TestMarketplace(unittest.TestCase):
     @patch("captivity.plugins.marketplace.subprocess.run")
     def test_install_failure(self, mock_run):
         mock_run.return_value = MagicMock(
-            returncode=1, stderr="No such package",
+            returncode=1,
+            stderr="No such package",
         )
         ok, msg = self.mp.install("captivity-plugin-cisco")
         self.assertFalse(ok)

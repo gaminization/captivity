@@ -19,8 +19,7 @@ import socket
 import subprocess
 import threading
 import time
-from pathlib import Path
-from typing import Any, Optional, Callable
+from typing import Optional
 
 from captivity.daemon.events import Event, EventBus
 from captivity.utils.logging import get_logger
@@ -41,12 +40,22 @@ def _find_daemon_binary() -> Optional[str]:
         # In project tree (development)
         os.path.join(
             os.path.dirname(__file__),
-            "..", "..", "..", "daemon-rs", "target", "release",
+            "..",
+            "..",
+            "..",
+            "daemon-rs",
+            "target",
+            "release",
             "captivity-daemon",
         ),
         os.path.join(
             os.path.dirname(__file__),
-            "..", "..", "..", "daemon-rs", "target", "debug",
+            "..",
+            "..",
+            "..",
+            "daemon-rs",
+            "target",
+            "debug",
             "captivity-daemon",
         ),
         # System install

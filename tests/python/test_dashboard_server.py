@@ -2,7 +2,6 @@
 
 import json
 import socket
-import threading
 import time
 import unittest
 import urllib.request

@@ -1,6 +1,5 @@
 """Tests for captivity.plugins.registry module."""
 
-import json
 import tempfile
 import unittest
 from pathlib import Path

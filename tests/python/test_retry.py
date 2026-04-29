@@ -152,32 +152,41 @@ class TestClassifyError(unittest.TestCase):
     """Test error classification."""
 
     def test_timeout(self):
-        self.assertEqual(RetryEngine.classify_error("Connection timeout"),
-                         FailureType.TRANSIENT)
+        self.assertEqual(
+            RetryEngine.classify_error("Connection timeout"), FailureType.TRANSIENT
+        )
 
     def test_dns(self):
-        self.assertEqual(RetryEngine.classify_error("DNS resolve failure"),
-                         FailureType.TRANSIENT)
+        self.assertEqual(
+            RetryEngine.classify_error("DNS resolve failure"), FailureType.TRANSIENT
+        )
 
     def test_auth(self):
-        self.assertEqual(RetryEngine.classify_error("HTTP 401 Unauthorized"),
-                         FailureType.AUTH_ERROR)
+        self.assertEqual(
+            RetryEngine.classify_error("HTTP 401 Unauthorized"), FailureType.AUTH_ERROR
+        )
 
     def test_rate_limit(self):
-        self.assertEqual(RetryEngine.classify_error("429 Too Many Requests"),
-                         FailureType.RATE_LIMITED)
+        self.assertEqual(
+            RetryEngine.classify_error("429 Too Many Requests"),
+            FailureType.RATE_LIMITED,
+        )
 
     def test_portal_down(self):
-        self.assertEqual(RetryEngine.classify_error("503 Service Unavailable"),
-                         FailureType.PORTAL_DOWN)
+        self.assertEqual(
+            RetryEngine.classify_error("503 Service Unavailable"),
+            FailureType.PORTAL_DOWN,
+        )
 
     def test_unknown(self):
-        self.assertEqual(RetryEngine.classify_error("Something happened"),
-                         FailureType.UNKNOWN)
+        self.assertEqual(
+            RetryEngine.classify_error("Something happened"), FailureType.UNKNOWN
+        )
 
     def test_connection_refused(self):
-        self.assertEqual(RetryEngine.classify_error("Connection refused"),
-                         FailureType.PORTAL_DOWN)
+        self.assertEqual(
+            RetryEngine.classify_error("Connection refused"), FailureType.PORTAL_DOWN
+        )
 
 
 if __name__ == "__main__":

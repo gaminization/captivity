@@ -67,7 +67,9 @@ class TestReadInterfaceStats(unittest.TestCase):
     """Test read_interface_stats function."""
 
     def setUp(self):
-        self.tmpfile = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        self.tmpfile = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False
+        )
         self.tmpfile.write(MOCK_PROC_NET_DEV)
         self.tmpfile.close()
 
@@ -117,7 +119,9 @@ class TestBandwidthMonitor(unittest.TestCase):
     """Test BandwidthMonitor class."""
 
     def setUp(self):
-        self.tmpfile = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        self.tmpfile = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False
+        )
         self.tmpfile.write(MOCK_PROC_NET_DEV)
         self.tmpfile.close()
 

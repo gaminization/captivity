@@ -1,7 +1,7 @@
 """Tests for captivity.core.credentials module."""
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from captivity.core.credentials import (
     store,
@@ -15,110 +15,54 @@ from captivity.core.credentials import (
 class TestCredentials(unittest.TestCase):
     """Test credential management."""
 
-    @patch("captivity.core.credentials.shutil.which", return_value="/usr/bin/secret-tool")
-    @patch("captivity.core.credentials.subprocess.run")
-    def test_store_calls_secret_tool(self, mock_run, mock_which):
-        """Store invokes secret-tool for username and password."""
-        mock_run.return_value = MagicMock(returncode=0)
-
+    @patch("captivity.core.credentials.keyring.set_password")
+    def test_store_calls_keyring(self, mock_set_password):
+        """Store invokes keyring for username and password."""
         store("test_network", "user", "pass")
 
-        self.assertEqual(mock_run.call_count, 2)
-        # First call stores username
-        args_0 = mock_run.call_args_list[0]
-        self.assertIn("store", args_0[0][0])
-        self.assertEqual(args_0[1]["input"], b"user")
-        # Second call stores password
-        args_1 = mock_run.call_args_list[1]
-        self.assertIn("store", args_1[0][0])
-        self.assertEqual(args_1[1]["input"], b"pass")
+        self.assertEqual(mock_set_password.call_count, 2)
+        mock_set_password.assert_any_call("captivity", "test_network-username", "user")
+        mock_set_password.assert_any_call("captivity", "test_network-password", "pass")
 
-    @patch("captivity.core.credentials.shutil.which", return_value="/usr/bin/secret-tool")
-    @patch("captivity.core.credentials.subprocess.run")
-    def test_retrieve_returns_credentials(self, mock_run, mock_which):
+    @patch("captivity.core.credentials.keyring.get_password")
+    def test_retrieve_returns_credentials(self, mock_get_password):
         """Retrieve returns username and password tuple."""
-        def side_effect(cmd, **kwargs):
-            result = MagicMock()
-            if "username" in cmd:
-                result.stdout = b"testuser"
-            else:
-                result.stdout = b"testpass"
-            result.returncode = 0
-            return result
 
-        mock_run.side_effect = side_effect
+        def side_effect(service, key):
+            if "username" in key:
+                return "testuser"
+            return "testpass"
+
+        mock_get_password.side_effect = side_effect
         username, password = retrieve("test_net")
         self.assertEqual(username, "testuser")
         self.assertEqual(password, "testpass")
 
-    @patch("captivity.core.credentials.shutil.which", return_value="/usr/bin/secret-tool")
-    @patch("captivity.core.credentials.subprocess.run")
-    def test_retrieve_raises_on_empty(self, mock_run, mock_which):
+    @patch("captivity.core.credentials.keyring.get_password", return_value=None)
+    def test_retrieve_raises_on_empty(self, mock_get_password):
         """Retrieve raises CredentialError for empty results."""
-        result = MagicMock()
-        result.stdout = b""
-        result.returncode = 0
-        mock_run.return_value = result
-
         with self.assertRaises(CredentialError):
             retrieve("missing_net")
 
-    @patch("captivity.core.credentials.shutil.which", return_value="/usr/bin/secret-tool")
-    @patch("captivity.core.credentials.subprocess.run")
-    def test_delete_calls_clear(self, mock_run, mock_which):
-        """Delete invokes secret-tool clear for both fields."""
-        mock_run.return_value = MagicMock(returncode=0)
-
+    @patch("captivity.core.credentials.keyring.delete_password")
+    def test_delete_calls_clear(self, mock_delete_password):
+        """Delete invokes keyring delete for both fields."""
         delete("test_net")
 
-        self.assertEqual(mock_run.call_count, 2)
-        for call_args in mock_run.call_args_list:
-            self.assertIn("clear", call_args[0][0])
+        self.assertEqual(mock_delete_password.call_count, 2)
+        mock_delete_password.assert_any_call("captivity", "test_net-username")
+        mock_delete_password.assert_any_call("captivity", "test_net-password")
 
-    @patch("captivity.core.credentials.shutil.which", return_value=None)
-    def test_store_raises_without_secret_tool(self, mock_which):
-        """Store raises CredentialError if secret-tool missing."""
+    @patch("captivity.core.credentials.keyring.set_password")
+    def test_store_raises_on_error(self, mock_set_password):
+        """Store raises CredentialError if keyring fails."""
+        mock_set_password.side_effect = Exception("Keyring locked")
         with self.assertRaises(CredentialError) as ctx:
             store("net", "user", "pass")
-        self.assertIn("secret-tool not found", str(ctx.exception))
+        self.assertIn("Failed to store credentials", str(ctx.exception))
 
-    @patch("captivity.core.credentials.shutil.which", return_value="/usr/bin/secret-tool")
-    @patch("captivity.core.credentials.subprocess.run")
-    def test_list_networks_parses_output(self, mock_run, mock_which):
-        """List parses secret-tool search output for network names."""
-        result = MagicMock()
-        # secret-tool writes metadata to stdout, attributes to stderr
-        result.stdout = (
-            "[/org/freedesktop/secrets/1]\n"
-            "label = captivity-campus_wifi-username\n"
-            "\n"
-            "[/org/freedesktop/secrets/2]\n"
-            "label = captivity-coffee_shop-password\n"
-        )
-        result.stderr = (
-            "attribute.application = captivity\n"
-            "attribute.network = campus_wifi\n"
-            "attribute.field = username\n"
-            "attribute.application = captivity\n"
-            "attribute.network = coffee_shop\n"
-            "attribute.field = password\n"
-        )
-        result.returncode = 0
-        mock_run.return_value = result
-
-        networks = list_networks()
-        self.assertEqual(networks, ["campus_wifi", "coffee_shop"])
-
-    @patch("captivity.core.credentials.shutil.which", return_value="/usr/bin/secret-tool")
-    @patch("captivity.core.credentials.subprocess.run")
-    def test_list_returns_empty_for_no_entries(self, mock_run, mock_which):
-        """List returns empty list when no credentials stored."""
-        result = MagicMock()
-        result.stdout = ""
-        result.stderr = ""
-        result.returncode = 0
-        mock_run.return_value = result
-
+    def test_list_returns_empty(self):
+        """List returns empty list since keyring API is limited."""
         networks = list_networks()
         self.assertEqual(networks, [])
 

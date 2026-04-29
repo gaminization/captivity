@@ -24,13 +24,25 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: |
+          pip install pip-tools
+          pip-sync requirements.lock
+          pip install -e .
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files
 
       - name: Lint
         run: pylint src/captivity --disable=all --enable=E --exit-zero
 
       - name: Run tests with coverage
-        run: pytest --cov=captivity --cov-report=xml --cov-report=term -q
+        run: pytest --cov=captivity --cov-report=xml --cov-report=term --cov-fail-under=70 -q
+
+      - name: Validate CLI execution
+        run: PYTHONPATH=src python3 -m captivity.cli --help > /dev/null
+
+      - name: Check CLI Docs Drift
+        run: ./scripts/check_docs_drift.sh
 
       - name: Upload test artifacts
         if: always()

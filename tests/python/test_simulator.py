@@ -147,9 +147,13 @@ class TestPortalSimulator(unittest.TestCase):
                 self.assertEqual(e.code, 400)
 
             # With terms
-            data = urlencode({
-                "username": "test", "password": "pass", "accept_terms": "on",
-            })
+            data = urlencode(
+                {
+                    "username": "test",
+                    "password": "pass",
+                    "accept_terms": "on",
+                }
+            )
             req = Request(
                 f"http://127.0.0.1:{self.port}/login",
                 data=data.encode(),

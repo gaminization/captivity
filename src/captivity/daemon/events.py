@@ -17,7 +17,7 @@ Events:
 
 import threading
 from enum import Enum, auto
-from typing import Callable, Any, Optional
+from typing import Callable, Any
 
 from captivity.utils.logging import get_logger
 
@@ -26,6 +26,7 @@ logger = get_logger("events")
 
 class Event(Enum):
     """Event types published on the event bus."""
+
     NETWORK_CONNECTED = auto()
     PORTAL_DETECTED = auto()
     LOGIN_SUCCESS = auto()
@@ -69,7 +70,9 @@ class EventBus:
                 self._subscribers[event] = []
             self._subscribers[event].append(callback)
             logger.debug(
-                "Subscribed %s to %s", callback.__name__, event.name,
+                "Subscribed %s to %s",
+                callback.__name__,
+                event.name,
             )
 
     def unsubscribe(
@@ -105,7 +108,9 @@ class EventBus:
             return
 
         logger.debug(
-            "Publishing %s to %d subscribers", event.name, len(subscribers),
+            "Publishing %s to %d subscribers",
+            event.name,
+            len(subscribers),
         )
 
         for callback in subscribers:
@@ -113,7 +118,9 @@ class EventBus:
                 callback(event=event, **kwargs)
             except Exception as exc:
                 logger.error(
-                    "Subscriber %s raised: %s", callback.__name__, exc,
+                    "Subscriber %s raised: %s",
+                    callback.__name__,
+                    exc,
                 )
 
     def clear(self) -> None:

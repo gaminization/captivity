@@ -16,6 +16,7 @@ When connecting to a known network, the profile enables:
 """
 
 import json
+import os
 import time
 from pathlib import Path
 from typing import Optional
@@ -26,11 +27,10 @@ from captivity.utils.logging import get_logger
 logger = get_logger("profiles")
 
 # Default profile storage following XDG spec
-import os
-
-PROFILES_DIR = Path(
-    os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
-) / "captivity"
+PROFILES_DIR = (
+    Path(os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")))
+    / "captivity"
+)
 PROFILES_FILE = PROFILES_DIR / "profiles.json"
 
 # Similarity threshold for fingerprint matching

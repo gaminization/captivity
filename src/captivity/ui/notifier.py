@@ -53,9 +53,12 @@ def _send_via_notify_send(
         subprocess.run(
             [
                 "notify-send",
-                "--app-name", APP_NAME,
-                "--urgency", urgency,
-                "--icon", icon,
+                "--app-name",
+                APP_NAME,
+                "--urgency",
+                urgency,
+                "--icon",
+                icon,
                 title,
                 body,
             ],

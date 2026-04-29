@@ -23,6 +23,7 @@ logger = get_logger("plugin.registry")
 def _registry_path() -> Path:
     """Get the path to the plugin registry file."""
     import os
+
     base = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
     path = Path(base) / "captivity" / "plugins"
     path.mkdir(parents=True, exist_ok=True)
@@ -42,6 +43,7 @@ class PluginEntry:
         installed_at: Unix timestamp of installation.
         portal_types: List of portal types this plugin handles.
     """
+
     package: str
     name: str
     version: str = "0.0.0"

@@ -9,7 +9,6 @@ Each plugin must implement:
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 import requests
 

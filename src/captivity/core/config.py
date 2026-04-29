@@ -30,7 +30,8 @@ logger = get_logger("config")
 def _config_dir() -> Path:
     """Get XDG config directory for Captivity."""
     base = os.environ.get(
-        "XDG_CONFIG_HOME", os.path.expanduser("~/.config"),
+        "XDG_CONFIG_HOME",
+        os.path.expanduser("~/.config"),
     )
     return Path(base) / "captivity"
 
@@ -46,6 +47,7 @@ def _config_path() -> Path:
 @dataclass
 class ProbeConfig:
     """Connectivity probe settings."""
+
     url: str = "https://clients3.google.com/generate_204"
     timeout: float = 5.0
     interval: float = 30.0
@@ -55,6 +57,7 @@ class ProbeConfig:
 @dataclass
 class DaemonConfig:
     """Daemon and service settings."""
+
     poll_interval: float = 30.0
     retry_base_delay: float = 5.0
     retry_max_delay: float = 300.0
@@ -65,6 +68,7 @@ class DaemonConfig:
 @dataclass
 class DashboardConfig:
     """Web dashboard settings."""
+
     host: str = "127.0.0.1"
     port: int = 8787
     enabled: bool = True
@@ -73,6 +77,7 @@ class DashboardConfig:
 @dataclass
 class SimulatorConfig:
     """Portal simulator settings."""
+
     host: str = "127.0.0.1"
     port: int = 9090
     default_scenario: str = "simple"
@@ -81,6 +86,7 @@ class SimulatorConfig:
 @dataclass
 class PluginsConfig:
     """Plugin system settings."""
+
     auto_discover: bool = True
     marketplace_enabled: bool = True
     install_timeout: int = 120
@@ -89,6 +95,7 @@ class PluginsConfig:
 @dataclass
 class TelemetryConfig:
     """Telemetry and monitoring settings."""
+
     enabled: bool = True
     bandwidth_tracking: bool = True
     history_limit: int = 1000
@@ -97,6 +104,7 @@ class TelemetryConfig:
 @dataclass
 class TrayConfig:
     """System tray UI settings."""
+
     enabled: bool = True
     notifications: bool = True
     icon_theme: str = "default"
@@ -105,6 +113,7 @@ class TrayConfig:
 @dataclass
 class LoginConfig:
     """Login behavior settings."""
+
     auto_login: bool = True
     timeout: float = 10.0
     max_attempts: int = 5
@@ -123,6 +132,7 @@ class CaptivityConfig:
         config.daemon.poll_interval
         config.dashboard.port
     """
+
     probe: ProbeConfig = field(default_factory=ProbeConfig)
     daemon: DaemonConfig = field(default_factory=DaemonConfig)
     dashboard: DashboardConfig = field(default_factory=DashboardConfig)
@@ -225,6 +235,7 @@ def _parse_toml(text: str) -> dict[str, dict[str, Any]]:
     """
     try:
         import tomllib
+
         return tomllib.loads(text)
     except ImportError:
         pass
@@ -316,7 +327,9 @@ def load_config(path: Optional[Path] = None) -> CaptivityConfig:
                             config.set(section, key, val)
                         except KeyError:
                             logger.warning(
-                                "Unknown config: %s.%s", section, key,
+                                "Unknown config: %s.%s",
+                                section,
+                                key,
                             )
             logger.info("Loaded config from %s", config_path)
         except Exception as exc:
@@ -332,7 +345,9 @@ def load_config(path: Optional[Path] = None) -> CaptivityConfig:
                 try:
                     config.set(section, key, env_val)
                     logger.debug(
-                        "Config override from env: %s=%s", env_key, env_val,
+                        "Config override from env: %s=%s",
+                        env_key,
+                        env_val,
                     )
                 except (KeyError, ValueError) as exc:
                     logger.warning("Bad env config %s: %s", env_key, exc)

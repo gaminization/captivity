@@ -23,9 +23,10 @@ from captivity.utils.logging import get_logger
 logger = get_logger("cache")
 
 # Default cache location following XDG spec
-CACHE_DIR = Path(
-    os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
-) / "captivity"
+CACHE_DIR = (
+    Path(os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")))
+    / "captivity"
+)
 CACHE_FILE = CACHE_DIR / "portal_cache.json"
 
 # Cache entries expire after 7 days

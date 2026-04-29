@@ -7,7 +7,6 @@ rate limiting, and network failures.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -29,13 +28,16 @@ class Scenario:
         username_field: Name of the username form field.
         password_field: Name of the password form field.
     """
+
     name: str
     description: str = ""
     portal_title: str = "WiFi Login"
-    form_fields: dict[str, str] = field(default_factory=lambda: {
-        "username": "",
-        "password": "",
-    })
+    form_fields: dict[str, str] = field(
+        default_factory=lambda: {
+            "username": "",
+            "password": "",
+        }
+    )
     redirect_url: str = "http://captive.portal/login"
     success_text: str = "Login successful"
     session_duration: int = 0
@@ -54,7 +56,6 @@ SCENARIOS: dict[str, Scenario] = {
         description="Basic username/password portal with no complications",
         portal_title="Simple WiFi Login",
     ),
-
     "terms": Scenario(
         name="terms",
         description="Portal requiring terms acceptance checkbox",
@@ -66,42 +67,36 @@ SCENARIOS: dict[str, Scenario] = {
             "accept_terms": "on",
         },
     ),
-
     "redirect": Scenario(
         name="redirect",
         description="Portal with HTTP redirect chain before login page",
         portal_title="Redirected Portal",
         redirect_url="http://gateway.example.com/redirect?url=http://captive.portal/login",
     ),
-
     "session_expiry": Scenario(
         name="session_expiry",
         description="Portal where sessions expire after 30 seconds",
         portal_title="Session-Limited Portal",
         session_duration=30,
     ),
-
     "rate_limited": Scenario(
         name="rate_limited",
         description="Portal that rate-limits login attempts to 3/min",
         portal_title="Rate-Limited Portal",
         rate_limit=3,
     ),
-
     "flaky": Scenario(
         name="flaky",
         description="Portal that fails the first 2 login attempts then succeeds",
         portal_title="Flaky Portal",
         fail_first_n=2,
     ),
-
     "slow": Scenario(
         name="slow",
         description="Portal with 2-second response latency",
         portal_title="Slow Portal",
         latency_ms=2000,
     ),
-
     "custom_fields": Scenario(
         name="custom_fields",
         description="Portal with non-standard field names",
@@ -114,7 +109,6 @@ SCENARIOS: dict[str, Scenario] = {
             "zone": "guest",
         },
     ),
-
     "email_only": Scenario(
         name="email_only",
         description="Portal requiring only email (no password)",

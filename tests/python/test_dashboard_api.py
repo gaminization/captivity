@@ -144,8 +144,13 @@ class TestDashboardAPIRouting(unittest.TestCase):
 
     def test_all_routes_work(self):
         api = DashboardAPI()
-        for path in ["/api/status", "/api/stats", "/api/history",
-                     "/api/networks", "/api/bandwidth"]:
+        for path in [
+            "/api/status",
+            "/api/stats",
+            "/api/history",
+            "/api/networks",
+            "/api/bandwidth",
+        ]:
             result = api.handle_request(path)
             self.assertIsNotNone(result, f"Route {path} returned None")
 

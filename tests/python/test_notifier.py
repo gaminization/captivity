@@ -1,16 +1,12 @@
 """Tests for captivity.ui.notifier module."""
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from captivity.ui.notifier import (
     Notifier,
     _has_notify_send,
     _send_via_notify_send,
-    URGENCY_LOW,
-    URGENCY_NORMAL,
-    URGENCY_CRITICAL,
-    APP_NAME,
 )
 
 
@@ -44,6 +40,7 @@ class TestSendViaNotifySend(unittest.TestCase):
     @patch("captivity.ui.notifier.subprocess.run")
     def test_handles_timeout(self, mock_run):
         import subprocess
+
         mock_run.side_effect = subprocess.TimeoutExpired("notify-send", 5)
         result = _send_via_notify_send("Title", "Body")
         self.assertFalse(result)

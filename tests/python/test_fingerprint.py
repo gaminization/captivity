@@ -22,8 +22,12 @@ class TestNetworkFingerprint(unittest.TestCase):
         self.assertEqual(fp.gateway_ip, "")
 
     def test_fingerprint_id_deterministic(self):
-        fp1 = NetworkFingerprint(ssid="Net", gateway_ip="10.0.0.1", portal_domain="portal.com")
-        fp2 = NetworkFingerprint(ssid="Net", gateway_ip="10.0.0.1", portal_domain="portal.com")
+        fp1 = NetworkFingerprint(
+            ssid="Net", gateway_ip="10.0.0.1", portal_domain="portal.com"
+        )
+        fp2 = NetworkFingerprint(
+            ssid="Net", gateway_ip="10.0.0.1", portal_domain="portal.com"
+        )
         self.assertEqual(fp1.fingerprint_id, fp2.fingerprint_id)
 
     def test_fingerprint_id_differs(self):
@@ -45,12 +49,16 @@ class TestNetworkFingerprint(unittest.TestCase):
 
     def test_matches_exact(self):
         fp1 = NetworkFingerprint(
-            ssid="Net", gateway_ip="10.0.0.1",
-            gateway_mac="aa:bb:cc:dd:ee:ff", portal_domain="portal.com",
+            ssid="Net",
+            gateway_ip="10.0.0.1",
+            gateway_mac="aa:bb:cc:dd:ee:ff",
+            portal_domain="portal.com",
         )
         fp2 = NetworkFingerprint(
-            ssid="Net", gateway_ip="10.0.0.1",
-            gateway_mac="AA:BB:CC:DD:EE:FF", portal_domain="portal.com",
+            ssid="Net",
+            gateway_ip="10.0.0.1",
+            gateway_mac="AA:BB:CC:DD:EE:FF",
+            portal_domain="portal.com",
         )
         self.assertAlmostEqual(fp1.matches(fp2), 1.0)
 
@@ -60,15 +68,20 @@ class TestNetworkFingerprint(unittest.TestCase):
         self.assertEqual(fp1.matches(fp2), 0.0)
 
     def test_matches_partial(self):
-        fp1 = NetworkFingerprint(ssid="Net", gateway_ip="10.0.0.1", portal_domain="portal.com")
-        fp2 = NetworkFingerprint(ssid="Net", gateway_ip="10.0.0.1", portal_domain="other.com")
+        fp1 = NetworkFingerprint(
+            ssid="Net", gateway_ip="10.0.0.1", portal_domain="portal.com"
+        )
+        fp2 = NetworkFingerprint(
+            ssid="Net", gateway_ip="10.0.0.1", portal_domain="other.com"
+        )
         score = fp1.matches(fp2)
         self.assertGreater(score, 0.5)
         self.assertLess(score, 1.0)
 
     def test_to_dict_from_dict_roundtrip(self):
         fp = NetworkFingerprint(
-            ssid="Net", gateway_ip="10.0.0.1",
+            ssid="Net",
+            gateway_ip="10.0.0.1",
             gateway_mac="aa:bb:cc:dd:ee:ff",
             portal_domain="portal.com",
             content_hash="abc123",
@@ -152,7 +165,9 @@ class TestGetGatewayMac(unittest.TestCase):
 class TestCaptureFingerprint(unittest.TestCase):
     """Test capture_fingerprint function."""
 
-    @patch("captivity.core.fingerprint.get_gateway_mac", return_value="aa:bb:cc:dd:ee:ff")
+    @patch(
+        "captivity.core.fingerprint.get_gateway_mac", return_value="aa:bb:cc:dd:ee:ff"
+    )
     @patch("captivity.core.fingerprint.get_default_gateway", return_value="10.0.0.1")
     def test_captures_all(self, mock_gw, mock_mac):
         fp = capture_fingerprint(

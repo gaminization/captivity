@@ -31,8 +31,10 @@ def is_gtk_available() -> bool:
     """Check if GTK3 is available for import."""
     try:
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk  # noqa: F401
+
         return True
     except (ImportError, ValueError):
         return False
@@ -79,6 +81,7 @@ class TrayIcon:
     def _setup_icon(self) -> None:
         """Create the GTK StatusIcon and context menu."""
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
 
@@ -177,8 +180,10 @@ class TrayIcon:
     def _on_quit(self, widget) -> None:
         """Quit the tray application."""
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
+
         logger.info("Tray application quit")
         Gtk.main_quit()
 
@@ -192,6 +197,7 @@ class TrayIcon:
             return
 
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
 

@@ -144,7 +144,7 @@ class SessionTracker:
         """Archive a completed session to history."""
         self.history.append(session)
         if len(self.history) > self._max_history:
-            self.history = self.history[-self._max_history:]
+            self.history = self.history[-self._max_history :]
 
     @property
     def total_uptime(self) -> float:

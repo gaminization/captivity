@@ -36,8 +36,10 @@ class TestEventBus(unittest.TestCase):
 
     def test_multiple_subscribers(self):
         results = []
+
         def handler1(**kwargs):
             results.append("h1")
+
         def handler2(**kwargs):
             results.append("h2")
 
@@ -73,8 +75,10 @@ class TestEventBus(unittest.TestCase):
     def test_subscriber_exception_doesnt_break_others(self):
         """A failing subscriber should not prevent others from running."""
         results = []
+
         def bad_handler(**kwargs):
             raise RuntimeError("oops")
+
         def good_handler(**kwargs):
             results.append("ok")
 

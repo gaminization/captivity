@@ -1,7 +1,6 @@
 """Tests for captivity.cli module."""
 
 import unittest
-from unittest.mock import patch
 
 from captivity.cli import build_parser
 
@@ -33,16 +32,27 @@ class TestCLI(unittest.TestCase):
 
     def test_login_parses_portal(self):
         """login --portal parses correctly."""
-        args = self.parser.parse_args([
-            "login", "--network", "mynet", "--portal", "http://p.com/login",
-        ])
+        args = self.parser.parse_args(
+            [
+                "login",
+                "--network",
+                "mynet",
+                "--portal",
+                "http://p.com/login",
+            ]
+        )
         self.assertEqual(args.portal, "http://p.com/login")
 
     def test_login_parses_dry_run(self):
         """login --dry-run flag is parsed."""
-        args = self.parser.parse_args([
-            "login", "--network", "mynet", "--dry-run",
-        ])
+        args = self.parser.parse_args(
+            [
+                "login",
+                "--network",
+                "mynet",
+                "--dry-run",
+            ]
+        )
         self.assertTrue(args.dry_run)
 
     def test_probe_subcommand(self):
@@ -65,9 +75,16 @@ class TestCLI(unittest.TestCase):
 
     def test_daemon_with_options(self):
         """daemon subcommand parses --network, --interval, --once."""
-        args = self.parser.parse_args([
-            "daemon", "--network", "campus", "--interval", "10", "--once",
-        ])
+        args = self.parser.parse_args(
+            [
+                "daemon",
+                "--network",
+                "campus",
+                "--interval",
+                "10",
+                "--once",
+            ]
+        )
         self.assertEqual(args.network, "campus")
         self.assertEqual(args.interval, 10)
         self.assertTrue(args.once)
@@ -91,9 +108,15 @@ class TestCLI(unittest.TestCase):
 
     def test_short_flags(self):
         """Short flags -n and -p work for login."""
-        args = self.parser.parse_args([
-            "login", "-n", "net", "-p", "http://portal",
-        ])
+        args = self.parser.parse_args(
+            [
+                "login",
+                "-n",
+                "net",
+                "-p",
+                "http://portal",
+            ]
+        )
         self.assertEqual(args.network, "net")
         self.assertEqual(args.portal, "http://portal")
 

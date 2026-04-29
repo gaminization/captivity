@@ -11,9 +11,6 @@ from captivity.core.config import (
     DaemonConfig,
     DashboardConfig,
     SimulatorConfig,
-    PluginsConfig,
-    TelemetryConfig,
-    TrayConfig,
     LoginConfig,
     load_config,
     save_config,
@@ -122,7 +119,7 @@ class TestTomlParsing(unittest.TestCase):
         self.assertEqual(data["dashboard"]["port"], 9999)
 
     def test_parse_comments(self):
-        text = "# comment\n[probe]\n# another\nurl = \"test\"\n"
+        text = '# comment\n[probe]\n# another\nurl = "test"\n'
         data = _parse_toml(text)
         self.assertEqual(data["probe"]["url"], "test")
 
@@ -161,7 +158,7 @@ class TestLoadSave(unittest.TestCase):
         self.assertIn("[daemon]", text)
 
     def test_file_overrides(self):
-        self.path.write_text('[probe]\ntimeout = 99.0\n')
+        self.path.write_text("[probe]\ntimeout = 99.0\n")
         config = load_config(self.path)
         self.assertEqual(config.probe.timeout, 99.0)
         # Non-overridden values keep defaults
@@ -199,7 +196,7 @@ class TestEnvOverrides(unittest.TestCase):
         self.assertFalse(config.dashboard.enabled)
 
     def test_env_overrides_file(self):
-        self.path.write_text('[dashboard]\nport = 5555\n')
+        self.path.write_text("[dashboard]\nport = 5555\n")
         os.environ["CAPTIVITY_DASHBOARD_PORT"] = "6666"
         config = load_config(self.path)
         # Env wins over file

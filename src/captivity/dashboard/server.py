@@ -52,8 +52,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if result is not None:
             self._send_response(200, "application/json", result)
         else:
-            self._send_response(404, "application/json",
-                                json.dumps({"error": "endpoint not found"}))
+            self._send_response(
+                404, "application/json", json.dumps({"error": "endpoint not found"})
+            )
 
     def _send_response(self, code: int, content_type: str, body: str) -> None:
         """Send an HTTP response."""

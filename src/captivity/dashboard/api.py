@@ -47,6 +47,7 @@ class DashboardAPI:
         if self.stats_db is None:
             try:
                 from captivity.telemetry.stats import StatsDatabase
+
                 self.stats_db = StatsDatabase()
             except Exception:
                 pass
@@ -54,6 +55,7 @@ class DashboardAPI:
         if self.profile_db is None:
             try:
                 from captivity.core.profiles import ProfileDatabase
+
                 self.profile_db = ProfileDatabase()
             except Exception:
                 pass
@@ -94,20 +96,27 @@ class DashboardAPI:
         self._lazy_load()
 
         if not self.stats_db:
-            return {"total_logins": 0, "total_uptime": 0, "total_bandwidth": 0, "networks": []}
+            return {
+                "total_logins": 0,
+                "total_uptime": 0,
+                "total_bandwidth": 0,
+                "networks": [],
+            }
 
         networks = []
         for ns in self.stats_db.get_all_stats():
-            networks.append({
-                "ssid": ns.ssid,
-                "login_successes": ns.login_successes,
-                "login_failures": ns.login_failures,
-                "success_rate": round(ns.success_rate * 100, 1),
-                "total_uptime": round(ns.total_uptime, 1),
-                "total_rx_bytes": ns.total_rx_bytes,
-                "total_tx_bytes": ns.total_tx_bytes,
-                "reconnect_count": ns.reconnect_count,
-            })
+            networks.append(
+                {
+                    "ssid": ns.ssid,
+                    "login_successes": ns.login_successes,
+                    "login_failures": ns.login_failures,
+                    "success_rate": round(ns.success_rate * 100, 1),
+                    "total_uptime": round(ns.total_uptime, 1),
+                    "total_rx_bytes": ns.total_rx_bytes,
+                    "total_tx_bytes": ns.total_tx_bytes,
+                    "reconnect_count": ns.reconnect_count,
+                }
+            )
 
         return {
             "total_logins": self.stats_db.total_logins,
@@ -134,7 +143,9 @@ class DashboardAPI:
         return [
             {
                 "timestamp": e.timestamp,
-                "time_str": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(e.timestamp)),
+                "time_str": time.strftime(
+                    "%Y-%m-%d %H:%M:%S", time.localtime(e.timestamp)
+                ),
                 "event_type": e.event_type,
                 "network": e.network,
                 "details": e.details,

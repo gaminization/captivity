@@ -120,7 +120,9 @@ def select_plugin(
                 return plugin
         except Exception as exc:
             logger.warning(
-                "Plugin %s detection error: %s", plugin.name, exc,
+                "Plugin %s detection error: %s",
+                plugin.name,
+                exc,
             )
 
     logger.warning("No plugin matched the portal response")

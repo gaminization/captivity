@@ -1,6 +1,5 @@
 """Tests for captivity.core.profiles module."""
 
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -103,13 +102,15 @@ class TestProfileDatabase(unittest.TestCase):
 
     def test_find_by_fingerprint(self):
         fp = NetworkFingerprint(
-            ssid="Net", gateway_ip="10.0.0.1",
+            ssid="Net",
+            gateway_ip="10.0.0.1",
             portal_domain="portal.com",
         )
         self.db.learn(ssid="Net", fingerprint=fp, plugin_name="pronto")
 
         probe_fp = NetworkFingerprint(
-            ssid="Net", gateway_ip="10.0.0.1",
+            ssid="Net",
+            gateway_ip="10.0.0.1",
             portal_domain="portal.com",
         )
         match = self.db.find_by_fingerprint(probe_fp)

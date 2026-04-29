@@ -1,30 +1,15 @@
 """
-Connection state machine for Captivity.
+Strict state machine for Captivity connection management.
 
-Defines explicit connection states and valid transitions.
-Integrates with the event bus and retry engine.
-
-States:
-    INIT               → Initial state on startup
-    NETWORK_CONNECTED  → WiFi interface is up
-    PORTAL_DETECTED    → Captive portal redirect detected
-    LOGGING_IN         → Login attempt in progress
-    CONNECTED          → Internet connectivity verified
-    SESSION_EXPIRED    → Was connected, now portal detected again
-    NETWORK_UNAVAILABLE → No network connectivity
-    RETRY_WAIT         → Waiting for retry delay to elapse
-
-Enhanced in v1.6:
-    - Transition history tracking (capped at 100)
-    - State duration measurement
-    - RetryEngine integration
-    - Event bus auto-publishing
+Enforces invariants:
+- Every state must have an exit path
+- Non-terminal states must not exceed their timeout limits
+- System must converge to CONNECTED or RETRY
 """
 
 import time
-from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Optional
+from typing import Optional, Callable
 
 from captivity.utils.logging import get_logger
 
@@ -32,250 +17,195 @@ logger = get_logger("state")
 
 
 class ConnectionState(Enum):
-    """Connection states for the daemon."""
+    """Connection states for the autonomous daemon."""
+
     INIT = auto()
-    NETWORK_CONNECTED = auto()
-    PORTAL_DETECTED = auto()
-    LOGGING_IN = auto()
+    PROBING = auto()
+    PORTAL = auto()
+    WAIT_USER = auto()
+    AUTHENTICATING = auto()
     CONNECTED = auto()
-    SESSION_EXPIRED = auto()
-    NETWORK_UNAVAILABLE = auto()
-    RETRY_WAIT = auto()
+    RETRY = auto()
+    ERROR = auto()
 
 
-# Valid state transitions: current_state → set of allowed next states
+# Max allowed time in each state before watchdog triggers transition
+STATE_TIMEOUTS: dict[ConnectionState, float] = {
+    ConnectionState.INIT: 5.0,
+    ConnectionState.PROBING: 15.0,
+    ConnectionState.PORTAL: 15.0,
+    ConnectionState.WAIT_USER: 300.0,
+    ConnectionState.AUTHENTICATING: 45.0,
+    ConnectionState.CONNECTED: float("inf"),  # Terminal/stable state
+    ConnectionState.RETRY: float("inf"),  # Handled by retry engine delays
+    ConnectionState.ERROR: 5.0,  # Should quickly transition to retry
+}
+
+# Strict valid transitions matrix
 VALID_TRANSITIONS: dict[ConnectionState, set[ConnectionState]] = {
     ConnectionState.INIT: {
-        ConnectionState.NETWORK_CONNECTED,
-        ConnectionState.NETWORK_UNAVAILABLE,
-        ConnectionState.PORTAL_DETECTED,
-        ConnectionState.CONNECTED,
+        ConnectionState.PROBING,
     },
-    ConnectionState.NETWORK_CONNECTED: {
-        ConnectionState.PORTAL_DETECTED,
+    ConnectionState.PROBING: {
+        ConnectionState.PORTAL,
         ConnectionState.CONNECTED,
-        ConnectionState.NETWORK_UNAVAILABLE,
+        ConnectionState.ERROR,
     },
-    ConnectionState.PORTAL_DETECTED: {
-        ConnectionState.LOGGING_IN,
-        ConnectionState.NETWORK_UNAVAILABLE,
+    ConnectionState.PORTAL: {
+        ConnectionState.WAIT_USER,
+        ConnectionState.AUTHENTICATING,
+        ConnectionState.ERROR,
     },
-    ConnectionState.LOGGING_IN: {
+    ConnectionState.WAIT_USER: {
         ConnectionState.CONNECTED,
-        ConnectionState.PORTAL_DETECTED,  # login failed, retry
-        ConnectionState.NETWORK_UNAVAILABLE,
-        ConnectionState.RETRY_WAIT,  # waiting for retry delay
+        ConnectionState.RETRY,
+        ConnectionState.PORTAL,  # Cooldown expired, check again
+    },
+    ConnectionState.AUTHENTICATING: {
+        ConnectionState.CONNECTED,
+        ConnectionState.RETRY,
+        ConnectionState.ERROR,
+        ConnectionState.WAIT_USER,  # Added for CAPTCHA fallback during login
     },
     ConnectionState.CONNECTED: {
-        ConnectionState.SESSION_EXPIRED,
-        ConnectionState.NETWORK_UNAVAILABLE,
-        ConnectionState.PORTAL_DETECTED,
+        ConnectionState.PROBING,
     },
-    ConnectionState.SESSION_EXPIRED: {
-        ConnectionState.PORTAL_DETECTED,
-        ConnectionState.NETWORK_UNAVAILABLE,
-        ConnectionState.CONNECTED,
+    ConnectionState.RETRY: {
+        ConnectionState.PROBING,
+        ConnectionState.AUTHENTICATING,
     },
-    ConnectionState.NETWORK_UNAVAILABLE: {
-        ConnectionState.NETWORK_CONNECTED,
-        ConnectionState.PORTAL_DETECTED,
-        ConnectionState.CONNECTED,
-    },
-    ConnectionState.RETRY_WAIT: {
-        ConnectionState.LOGGING_IN,  # retry timer elapsed
-        ConnectionState.PORTAL_DETECTED,
-        ConnectionState.NETWORK_UNAVAILABLE,
-        ConnectionState.CONNECTED,  # connectivity recovered
+    ConnectionState.ERROR: {
+        ConnectionState.RETRY,
     },
 }
+
+
+MIN_STATE_DURATION = 3.0
 
 
 class InvalidTransition(Exception):
     """Raised when an invalid state transition is attempted."""
 
 
-@dataclass
-class TransitionRecord:
-    """Record of a single state transition.
-
-    Attributes:
-        from_state: Source state.
-        to_state: Destination state.
-        timestamp: Time of transition.
-        duration: Time spent in the source state (seconds).
-    """
-    from_state: ConnectionState
-    to_state: ConnectionState
-    timestamp: float = field(default_factory=time.time)
-    duration: float = 0.0
+class StateWatchdogViolation(Exception):
+    """Raised when a state exceeds its maximum allowed duration."""
 
 
 class ConnectionStateMachine:
-    """Manages connection state with validated transitions.
-
-    Enhanced in v1.6 with transition history, state duration
-    tracking, retry engine integration, and event bus publishing.
-
-    Attributes:
-        state: Current connection state.
-        previous_state: Previous connection state.
-        history: List of recent transitions (max 100).
-        state_entered_at: Timestamp when current state was entered.
-    """
-
-    MAX_HISTORY = 100
+    """Manages connection state with strict transition validation and watchdogs."""
 
     def __init__(
         self,
         on_transition: Optional[Callable] = None,
-        retry_engine: Optional[object] = None,
-        event_bus: Optional[object] = None,
-    ) -> None:
+        debounce_duration: float = MIN_STATE_DURATION,
+    ):
         self.state = ConnectionState.INIT
-        self.previous_state: Optional[ConnectionState] = None
         self.state_entered_at: float = time.time()
-        self.history: list[TransitionRecord] = []
         self._on_transition = on_transition
-        self._retry_engine = retry_engine
-        self._event_bus = event_bus
+        self.debounce_duration = debounce_duration
+
+    def force_transition(self, new_state: ConnectionState) -> None:
+        """Force a transition to a new state regardless of invariants or debouncing."""
+        if new_state == self.state:
+            return
+
+        now = time.time()
+        duration = now - self.state_entered_at
+        old_state = self.state
+
+        logger.info(
+            "STATE_TRANSITION EVENT=FORCED_TRANSITION OLD_STATE=%s NEW_STATE=%s DURATION=%.1fs",
+            old_state.name,
+            new_state.name,
+            duration,
+        )
+
+        self.state = new_state
+        self.state_entered_at = now
+
+        if self._on_transition:
+            try:
+                self._on_transition(old_state=old_state, new_state=new_state)
+            except Exception as e:
+                logger.error("Transition callback failed: %s", e)
 
     def transition(self, new_state: ConnectionState) -> None:
-        """Transition to a new state.
-
-        Records transition history, publishes events, and
-        integrates with the retry engine.
-
-        Args:
-            new_state: The target state.
-
-        Raises:
-            InvalidTransition: If the transition is not valid.
-        """
+        """Transition to a new state if valid and debounced."""
         if new_state == self.state:
-            return  # No-op for same-state
-
-        allowed = VALID_TRANSITIONS.get(self.state, set())
-        if new_state not in allowed:
-            raise InvalidTransition(
-                f"Cannot transition from {self.state.name} to {new_state.name}"
-            )
+            return
 
         now = time.time()
         duration = now - self.state_entered_at
 
-        # Record transition
-        record = TransitionRecord(
-            from_state=self.state,
-            to_state=new_state,
-            timestamp=now,
-            duration=duration,
-        )
-        self.history.append(record)
-        if len(self.history) > self.MAX_HISTORY:
-            self.history = self.history[-self.MAX_HISTORY:]
+        # Anti-oscillation debouncing
+        if duration < self.debounce_duration and self.state != ConnectionState.INIT:
+            logger.debug(
+                "DEBOUNCE IGNORING TRANSITION: %s -> %s (duration %.1fs < %.1fs)",
+                self.state.name,
+                new_state.name,
+                duration,
+                self.debounce_duration,
+            )
+            return
 
-        self.previous_state = self.state
+        allowed = VALID_TRANSITIONS.get(self.state, set())
+        if new_state not in allowed:
+            # Force recovery on illegal state transitions to prevent deadlocks
+            logger.error(
+                "ILLEGAL TRANSITION: %s -> %s. Forcing ERROR state.",
+                self.state.name,
+                new_state.name,
+            )
+            self.force_transition(ConnectionState.ERROR)
+            return
+
         old_state = self.state
+
+        logger.info(
+            "STATE_TRANSITION EVENT=TRANSITION OLD_STATE=%s NEW_STATE=%s DURATION=%.1fs",
+            old_state.name,
+            new_state.name,
+            duration,
+        )
+
         self.state = new_state
         self.state_entered_at = now
 
-        logger.info(
-            "State: %s → %s (%.1fs in %s)",
-            old_state.name, new_state.name, duration, old_state.name,
-        )
-
-        # Retry engine integration
-        self._handle_retry_integration(old_state, new_state)
-
-        # Event bus publishing
-        self._publish_event(old_state, new_state)
-
-        # Custom callback
         if self._on_transition:
-            self._on_transition(
-                old_state=old_state,
-                new_state=new_state,
-            )
-
-    def _handle_retry_integration(
-        self, old_state: ConnectionState, new_state: ConnectionState,
-    ) -> None:
-        """Integrate retry engine with state transitions."""
-        if not self._retry_engine:
-            return
-
-        if new_state == ConnectionState.CONNECTED:
-            self._retry_engine.record_success()
-        elif (old_state == ConnectionState.LOGGING_IN and
-              new_state in (ConnectionState.PORTAL_DETECTED,
-                            ConnectionState.RETRY_WAIT)):
-            from captivity.core.retry import FailureType
-            self._retry_engine.record_failure(FailureType.TRANSIENT)
-
-    def _publish_event(
-        self, old_state: ConnectionState, new_state: ConnectionState,
-    ) -> None:
-        """Publish state change events to the event bus."""
-        if not self._event_bus:
-            return
-
-        # Map state transitions to event names
-        event_map = {
-            ConnectionState.NETWORK_CONNECTED: "NETWORK_CONNECTED",
-            ConnectionState.PORTAL_DETECTED: "PORTAL_DETECTED",
-            ConnectionState.CONNECTED: "LOGIN_SUCCESS",
-            ConnectionState.SESSION_EXPIRED: "SESSION_EXPIRED",
-            ConnectionState.NETWORK_UNAVAILABLE: "NETWORK_DISCONNECTED",
-        }
-
-        event = event_map.get(new_state)
-        if event and hasattr(self._event_bus, "publish"):
             try:
-                self._event_bus.publish(event)
-            except Exception as exc:
-                logger.debug("Event publish failed: %s", exc)
+                self._on_transition(old_state=old_state, new_state=new_state)
+            except Exception as e:
+                logger.error("Transition callback failed: %s", e)
+
+    def check_watchdog(self) -> None:
+        """Enforce invariants. Should be called periodically by the main loop.
+
+        If a state exceeds its timeout, it forces a transition to recover.
+        """
+        duration = time.time() - self.state_entered_at
+        limit = STATE_TIMEOUTS.get(self.state, float("inf"))
+
+        if duration > limit:
+            logger.error(
+                "WATCHDOG_VIOLATION STATE=%s DURATION=%.1fs LIMIT=%.1fs",
+                self.state.name,
+                duration,
+                limit,
+            )
+            # Force recovery
+            if self.state in (
+                ConnectionState.PROBING,
+                ConnectionState.PORTAL,
+                ConnectionState.AUTHENTICATING,
+            ):
+                self.transition(ConnectionState.ERROR)
+            elif self.state == ConnectionState.WAIT_USER:
+                self.transition(ConnectionState.RETRY)
+            elif self.state == ConnectionState.ERROR:
+                self.transition(ConnectionState.RETRY)
+            elif self.state == ConnectionState.INIT:
+                self.transition(ConnectionState.PROBING)
 
     @property
     def is_connected(self) -> bool:
-        """Whether currently connected to internet."""
         return self.state == ConnectionState.CONNECTED
-
-    @property
-    def needs_login(self) -> bool:
-        """Whether a login attempt is needed."""
-        return self.state in (
-            ConnectionState.PORTAL_DETECTED,
-            ConnectionState.SESSION_EXPIRED,
-        )
-
-    @property
-    def is_waiting(self) -> bool:
-        """Whether waiting for retry delay."""
-        return self.state == ConnectionState.RETRY_WAIT
-
-    @property
-    def state_duration(self) -> float:
-        """Time spent in current state (seconds)."""
-        return time.time() - self.state_entered_at
-
-    @property
-    def transition_count(self) -> int:
-        """Total number of recorded transitions."""
-        return len(self.history)
-
-    def get_state_stats(self) -> dict[str, float]:
-        """Get total time spent in each state.
-
-        Returns:
-            Dict mapping state name to total seconds.
-        """
-        stats: dict[str, float] = {s.name: 0.0 for s in ConnectionState}
-        for record in self.history:
-            stats[record.from_state.name] += record.duration
-        # Add current state duration
-        stats[self.state.name] += self.state_duration
-        return stats
-
-    def __repr__(self) -> str:
-        return f"ConnectionStateMachine(state={self.state.name})"
-

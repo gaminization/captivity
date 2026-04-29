@@ -24,15 +24,17 @@ logger = get_logger("retry")
 
 class FailureType(Enum):
     """Classification of login failures."""
-    TRANSIENT = "transient"       # Network timeout, DNS failure
-    AUTH_ERROR = "auth_error"     # Bad credentials
-    RATE_LIMITED = "rate_limited" # Portal rate limiting
+
+    TRANSIENT = "transient"  # Network timeout, DNS failure
+    AUTH_ERROR = "auth_error"  # Bad credentials
+    RATE_LIMITED = "rate_limited"  # Portal rate limiting
     PORTAL_DOWN = "portal_down"  # Portal unreachable
     UNKNOWN = "unknown"
 
 
 class RetryState(Enum):
     """Current state of the retry engine."""
+
     IDLE = "idle"
     WAITING = "waiting"
     READY = "ready"
@@ -100,10 +102,14 @@ class RetryEngine:
     def state(self) -> RetryState:
         """Current retry state, with circuit breaker auto-reset."""
         if self._state == RetryState.CIRCUIT_OPEN:
-            if (self._circuit_opened_at and
-                    time.time() - self._circuit_opened_at >= self.config.circuit_reset_time):
-                logger.info("Circuit breaker reset after %.0fs",
-                            self.config.circuit_reset_time)
+            if (
+                self._circuit_opened_at
+                and time.time() - self._circuit_opened_at
+                >= self.config.circuit_reset_time
+            ):
+                logger.info(
+                    "Circuit breaker reset after %.0fs", self.config.circuit_reset_time
+                )
                 self.reset()
                 return RetryState.IDLE
         return self._state
@@ -257,9 +263,14 @@ class RetryEngine:
         """
         error_lower = error.lower()
 
-        if any(kw in error_lower for kw in ("timeout", "dns", "resolve", "connection reset")):
+        if any(
+            kw in error_lower
+            for kw in ("timeout", "dns", "resolve", "connection reset")
+        ):
             return FailureType.TRANSIENT
-        if any(kw in error_lower for kw in ("401", "403", "invalid credentials", "auth")):
+        if any(
+            kw in error_lower for kw in ("401", "403", "invalid credentials", "auth")
+        ):
             return FailureType.AUTH_ERROR
         if any(kw in error_lower for kw in ("429", "rate limit", "too many")):
             return FailureType.RATE_LIMITED

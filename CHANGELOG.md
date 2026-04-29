@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v2.2.0] — 2026-04-28
+
+### Added
+
+- `keyring` integration for cross-platform secure credential management (replaced `secret-tool`)
+- Strict development dependency locking via `pip-tools` (`requirements.lock`)
+- Automated CLI documentation generation (`scripts/generate_docs.sh`)
+- Pre-commit hook to prevent CLI documentation drift (`scripts/check_docs_drift.sh`)
+- Automated release script (`scripts/release.sh`)
+- Enforced `black` and `ruff` formatting/linting via `pre-commit`
+- CI/CD workflow hardening with strict coverage threshold and CLI execution validation
+
+### Changed
+
+- Transitioned credential management unit tests to use `unittest.mock` against the `keyring` API
+- Refactored `captivity.cli` to be executable as a standalone module (`__main__` entry point)
+- Updated `pytest` coverage enforcement to match current codebase reality (70%)
+
+---
+
 ## [v2.1] — 2026-03-31
 
 ### Added

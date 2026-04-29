@@ -1,86 +1,82 @@
-"""
-Integration test: Daemon lifecycle.
+"""Tests for the event-driven DaemonRunner."""
 
-Tests the DaemonRunner's initialization, single probe cycle,
-and state machine integration.
-"""
+import unittest
+from unittest.mock import patch, MagicMock
 
-import threading
-import time
-
-from captivity.core.probe import ConnectivityStatus
-from captivity.core.state import ConnectionState
-from captivity.core.retry import RetryState
 from captivity.daemon.runner import DaemonRunner
-from captivity.daemon.events import Event
+from captivity.core.state import ConnectionState
+from captivity.core.probe import ConnectivityStatus
+from captivity.daemon.network_monitor import NetworkEvent
+from captivity.core.login import LoginResult
 
 
-class TestDaemonLifecycle:
-    """Test daemon start, probe, and stop."""
+class TestDaemonRunner(unittest.TestCase):
+    @patch("captivity.daemon.runner.NetworkMonitor")
+    def setUp(self, mock_monitor):
+        self.runner = DaemonRunner()
+        self.runner.monitor = mock_monitor.return_value
+        self.runner.state_machine.debounce_duration = 0.0
 
-    def test_daemon_creates_with_defaults(self):
-        """DaemonRunner should initialize with all components."""
-        d = DaemonRunner(network="test-net")
-        assert d.network == "test-net"
-        assert d.retry_engine is not None
-        assert d.state_machine is not None
-        assert d.event_bus is not None
-        assert d.should_run is True
-        assert d.retry_engine.state == RetryState.IDLE
+    @patch("captivity.daemon.runner.probe_connectivity_detailed")
+    def test_run_probe_connected(self, mock_probe):
+        mock_result = MagicMock()
+        mock_result.status = ConnectivityStatus.CONNECTED
+        mock_result.detection_method = "test"
+        mock_probe.return_value = mock_result
 
-    def test_daemon_run_once_returns_status(self):
-        """run_once should return a valid ConnectivityStatus."""
-        d = DaemonRunner(network="test-net")
-        status = d.run_once()
-        assert isinstance(status, ConnectivityStatus)
+        self.runner._run_probe()
+        self.assertEqual(self.runner.state_machine.state, ConnectionState.CONNECTED)
 
-    def test_daemon_run_once_updates_state_machine(self):
-        """After run_once, state machine should leave INIT."""
-        d = DaemonRunner(network="test-net")
-        d.run_once()
-        # State should have transitioned from INIT
-        assert d.state_machine.state != ConnectionState.INIT
+    @patch("captivity.daemon.runner.probe_connectivity_detailed")
+    @patch("captivity.daemon.runner.do_login")
+    def test_run_probe_portal_wait_user(self, mock_login, mock_probe):
+        mock_result = MagicMock()
+        mock_result.status = ConnectivityStatus.PORTAL_DETECTED
+        mock_result.detection_method = "test"
+        mock_probe.return_value = mock_result
 
-    def test_daemon_events_published(self):
-        """Daemon should publish events during run_once."""
-        d = DaemonRunner(network="test-net")
-        received = []
-        d.event_bus.subscribe(Event.LOGIN_SUCCESS, lambda **kw: received.append("success"))
-        d.event_bus.subscribe(Event.SESSION_EXPIRED, lambda **kw: received.append("expired"))
-        d.event_bus.subscribe(Event.NETWORK_CONNECTED, lambda **kw: received.append("connected"))
-        d.run_once()
-        # At least one event should have been published
-        # (the specific event depends on actual network state)
+        mock_login.return_value = LoginResult.WAIT_USER
+        self.runner.network = "test_net"
 
-    def test_daemon_signal_stops_loop(self):
-        """Setting should_run=False stops the daemon."""
-        d = DaemonRunner(network="test-net", interval=1)
+        self.runner._run_probe()
+        self.assertEqual(self.runner.state_machine.state, ConnectionState.WAIT_USER)
 
-        def stop_after_delay():
-            time.sleep(0.5)
-            d.should_run = False
+    @patch("captivity.daemon.runner.probe_connectivity_detailed")
+    @patch("captivity.daemon.runner.do_login")
+    def test_run_probe_portal_success(self, mock_login, mock_probe):
+        mock_result = MagicMock()
+        mock_result.status = ConnectivityStatus.PORTAL_DETECTED
+        mock_result.detection_method = "test"
+        mock_probe.return_value = mock_result
 
-        stopper = threading.Thread(target=stop_after_delay)
-        stopper.start()
+        mock_login.return_value = LoginResult.SUCCESS
+        self.runner.network = "test_net"
 
-        start = time.time()
-        d.run()
-        elapsed = time.time() - start
+        self.runner._run_probe()
+        self.assertEqual(self.runner.state_machine.state, ConnectionState.CONNECTED)
 
-        stopper.join()
-        assert elapsed < 5.0, f"Daemon didn't stop in time ({elapsed:.1f}s)"
+    def test_handle_network_event_disconnected(self):
+        self.runner._handle_network_event(NetworkEvent.DISCONNECTED)
+        self.assertEqual(self.runner.state_machine.state, ConnectionState.ERROR)
 
-    def test_daemon_retry_engine_resets_on_success(self):
-        """Retry engine should reset after successful connectivity."""
-        d = DaemonRunner(network="test-net")
-        # Simulate some failures
-        from captivity.core.retry import FailureType
-        d.retry_engine.record_failure(FailureType.TRANSIENT)
-        d.retry_engine.record_failure(FailureType.TRANSIENT)
-        assert d.retry_engine.attempt > 0
+    @patch("captivity.daemon.runner.DaemonRunner._run_probe")
+    def test_handle_network_event_connected(self, mock_run_probe):
+        self.runner._handle_network_event(NetworkEvent.CONNECTED)
+        mock_run_probe.assert_called_once()
 
-        # Run a probe — if connected, retry should reset
-        status = d.run_once()
-        if status == ConnectivityStatus.CONNECTED:
-            assert d.retry_engine.attempt == 0
-            assert d.retry_engine.state == RetryState.IDLE
+    def test_adaptive_cooldown(self):
+        # 1st call -> True
+        self.assertTrue(self.runner._should_open_browser())
+        # 2nd call immediate -> False
+        self.assertFalse(self.runner._should_open_browser())
+
+        # Fast forward 61s -> True
+        with patch(
+            "captivity.daemon.runner.time.time",
+            return_value=self.runner.last_browser_open_time + 61,
+        ):
+            self.assertTrue(self.runner._should_open_browser())
+
+
+if __name__ == "__main__":
+    unittest.main()

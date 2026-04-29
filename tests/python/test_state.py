@@ -1,95 +1,101 @@
-"""Tests for captivity.core.state module."""
+"""Tests for the strict ConnectionStateMachine."""
 
 import unittest
+from unittest.mock import patch
 
 from captivity.core.state import (
     ConnectionState,
     ConnectionStateMachine,
-    InvalidTransition,
-    VALID_TRANSITIONS,
+    STATE_TIMEOUTS,
 )
 
 
-class TestConnectionState(unittest.TestCase):
-    """Test ConnectionState enum."""
-
-    def test_all_states_defined(self):
-        states = list(ConnectionState)
-        self.assertEqual(len(states), 8)
-        self.assertIn(ConnectionState.INIT, states)
-        self.assertIn(ConnectionState.CONNECTED, states)
-
-    def test_all_states_have_transitions(self):
-        """Every state should have defined transitions."""
-        for state in ConnectionState:
-            self.assertIn(state, VALID_TRANSITIONS)
-
-
 class TestConnectionStateMachine(unittest.TestCase):
-    """Test ConnectionStateMachine."""
-
     def setUp(self):
         self.transitions = []
+
         def on_transition(old_state, new_state):
             self.transitions.append((old_state, new_state))
-        self.sm = ConnectionStateMachine(on_transition=on_transition)
+
+        self.sm = ConnectionStateMachine(
+            on_transition=on_transition, debounce_duration=0.0
+        )
 
     def test_initial_state(self):
         self.assertEqual(self.sm.state, ConnectionState.INIT)
+        self.assertFalse(self.sm.is_connected)
 
-    def test_valid_transition(self):
-        self.sm.transition(ConnectionState.NETWORK_CONNECTED)
-        self.assertEqual(self.sm.state, ConnectionState.NETWORK_CONNECTED)
-        self.assertEqual(self.sm.previous_state, ConnectionState.INIT)
+    def test_valid_transitions(self):
+        # Normal flow
+        self.sm.transition(ConnectionState.PROBING)
+        self.assertEqual(self.sm.state, ConnectionState.PROBING)
 
-    def test_invalid_transition_raises(self):
-        """Cannot go directly from INIT to LOGGING_IN."""
-        with self.assertRaises(InvalidTransition):
-            self.sm.transition(ConnectionState.LOGGING_IN)
+        self.sm.transition(ConnectionState.PORTAL)
+        self.assertEqual(self.sm.state, ConnectionState.PORTAL)
 
-    def test_same_state_is_noop(self):
-        """Transitioning to the same state is a no-op."""
-        self.sm.transition(ConnectionState.CONNECTED)
-        self.sm.transition(ConnectionState.CONNECTED)  # no error
-        self.assertEqual(len(self.transitions), 1)
+        self.sm.transition(ConnectionState.WAIT_USER)
+        self.assertEqual(self.sm.state, ConnectionState.WAIT_USER)
 
-    def test_callback_invoked(self):
-        self.sm.transition(ConnectionState.PORTAL_DETECTED)
-        self.assertEqual(len(self.transitions), 1)
-        self.assertEqual(
-            self.transitions[0],
-            (ConnectionState.INIT, ConnectionState.PORTAL_DETECTED),
-        )
-
-    def test_full_login_flow(self):
-        """Test the typical login flow through states."""
-        self.sm.transition(ConnectionState.PORTAL_DETECTED)
-        self.sm.transition(ConnectionState.LOGGING_IN)
         self.sm.transition(ConnectionState.CONNECTED)
         self.assertEqual(self.sm.state, ConnectionState.CONNECTED)
         self.assertTrue(self.sm.is_connected)
 
-    def test_session_expiry_flow(self):
-        """Test session expiry and re-login flow."""
+    def test_invalid_transition_forces_error(self):
+        # INIT -> CONNECTED is invalid
         self.sm.transition(ConnectionState.CONNECTED)
-        self.sm.transition(ConnectionState.SESSION_EXPIRED)
-        self.sm.transition(ConnectionState.PORTAL_DETECTED)
-        self.sm.transition(ConnectionState.LOGGING_IN)
+        # Should force ERROR instead
+        self.assertEqual(self.sm.state, ConnectionState.ERROR)
+
+        # ERROR -> CONNECTED is invalid
         self.sm.transition(ConnectionState.CONNECTED)
-        self.assertTrue(self.sm.is_connected)
+        self.assertEqual(self.sm.state, ConnectionState.ERROR)
 
-    def test_network_unavailable_recovery(self):
-        """Test recovery from network unavailable."""
-        self.sm.transition(ConnectionState.NETWORK_UNAVAILABLE)
-        self.sm.transition(ConnectionState.NETWORK_CONNECTED)
-        self.assertFalse(self.sm.needs_login)
+        # ERROR -> RETRY is valid
+        self.sm.transition(ConnectionState.RETRY)
+        self.assertEqual(self.sm.state, ConnectionState.RETRY)
 
-    def test_needs_login(self):
-        self.sm.transition(ConnectionState.PORTAL_DETECTED)
-        self.assertTrue(self.sm.needs_login)
+    def test_watchdog_no_violation(self):
+        self.sm.transition(ConnectionState.PROBING)
+        with patch(
+            "captivity.core.state.time.time", return_value=self.sm.state_entered_at + 1
+        ):
+            self.sm.check_watchdog()
+        self.assertEqual(self.sm.state, ConnectionState.PROBING)
 
-    def test_repr(self):
-        self.assertIn("INIT", repr(self.sm))
+    def test_watchdog_violation_forces_transition(self):
+        self.sm.transition(ConnectionState.PROBING)
+        limit = STATE_TIMEOUTS[ConnectionState.PROBING]
+
+        with patch(
+            "captivity.core.state.time.time",
+            return_value=self.sm.state_entered_at + limit + 1,
+        ):
+            self.sm.check_watchdog()
+
+        # PROBING timeout should force ERROR
+        self.assertEqual(self.sm.state, ConnectionState.ERROR)
+
+    def test_watchdog_wait_user_timeout(self):
+        self.sm.transition(ConnectionState.PROBING)
+        self.sm.transition(ConnectionState.PORTAL)
+        self.sm.transition(ConnectionState.WAIT_USER)
+
+        limit = STATE_TIMEOUTS[ConnectionState.WAIT_USER]
+        with patch(
+            "captivity.core.state.time.time",
+            return_value=self.sm.state_entered_at + limit + 1,
+        ):
+            self.sm.check_watchdog()
+
+        # WAIT_USER timeout should force RETRY
+        self.assertEqual(self.sm.state, ConnectionState.RETRY)
+
+    def test_same_state_is_noop(self):
+        self.sm.transition(ConnectionState.PROBING)
+        self.transitions.clear()
+
+        self.sm.transition(ConnectionState.PROBING)
+        self.assertEqual(len(self.transitions), 0)
 
 
 if __name__ == "__main__":

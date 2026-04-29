@@ -37,17 +37,17 @@ def _login_page_html(scenario: Scenario) -> str:
     for name, default in scenario.form_fields.items():
         if name == scenario.password_field:
             fields.append(
-                f'  <label>{name}</label>'
+                f"  <label>{name}</label>"
                 f'  <input type="password" name="{name}" value="{default}">'
             )
         elif "terms" in name.lower():
             fields.append(
                 f'  <label><input type="checkbox" name="{name}"> '
-                f'I accept the terms</label>'
+                f"I accept the terms</label>"
             )
         else:
             fields.append(
-                f'  <label>{name}</label>'
+                f"  <label>{name}</label>"
                 f'  <input type="text" name="{name}" value="{default}">'
             )
 
@@ -180,8 +180,7 @@ class _PortalHandler(BaseHTTPRequestHandler):
                     return
 
             # Intentional failure simulation
-            if (self.scenario.fail_first_n > 0 and
-                    attempt <= self.scenario.fail_first_n):
+            if self.scenario.fail_first_n > 0 and attempt <= self.scenario.fail_first_n:
                 self._send_html(
                     403,
                     "<h1>Login Failed</h1>"
@@ -189,7 +188,8 @@ class _PortalHandler(BaseHTTPRequestHandler):
                 )
                 logger.debug(
                     "Intentional failure %d/%d",
-                    attempt, self.scenario.fail_first_n,
+                    attempt,
+                    self.scenario.fail_first_n,
                 )
                 return
 
@@ -198,8 +198,7 @@ class _PortalHandler(BaseHTTPRequestHandler):
                 if "accept_terms" not in params:
                     self._send_html(
                         400,
-                        "<h1>Terms Required</h1>"
-                        "<p>You must accept the terms.</p>",
+                        "<h1>Terms Required</h1>" "<p>You must accept the terms.</p>",
                     )
                     return
 
@@ -278,7 +277,8 @@ class _PortalHandler(BaseHTTPRequestHandler):
         now = time.time()
         # Expire old sessions
         expired = [
-            k for k, v in self.sim_state.sessions.items()
+            k
+            for k, v in self.sim_state.sessions.items()
             if now - v > self.scenario.session_duration
         ]
         for k in expired:
@@ -335,7 +335,9 @@ class PortalSimulator:
         self._thread.start()
         logger.info(
             "Portal simulator started at http://%s:%d (scenario: %s)",
-            self.host, self.port, self.scenario.name,
+            self.host,
+            self.port,
+            self.scenario.name,
         )
 
     def stop(self) -> None:

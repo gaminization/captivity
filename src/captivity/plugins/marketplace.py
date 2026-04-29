@@ -36,6 +36,7 @@ class MarketplacePlugin:
         version: Latest known version.
         url: Project/repository URL.
     """
+
     package: str
     name: str
     description: str = ""
@@ -131,12 +132,14 @@ class Marketplace:
         query_lower = query.lower()
         results = []
         for plugin in CATALOG.values():
-            searchable = " ".join([
-                plugin.package,
-                plugin.name,
-                plugin.description,
-                " ".join(plugin.portal_types),
-            ]).lower()
+            searchable = " ".join(
+                [
+                    plugin.package,
+                    plugin.name,
+                    plugin.description,
+                    " ".join(plugin.portal_types),
+                ]
+            ).lower()
             if query_lower in searchable:
                 results.append(plugin)
         return results
@@ -177,6 +180,7 @@ class Marketplace:
             # Try to get actual installed version
             try:
                 from importlib.metadata import version as get_version
+
                 version = get_version(package)
             except Exception:
                 pass

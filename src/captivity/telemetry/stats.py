@@ -21,9 +21,10 @@ from captivity.utils.logging import get_logger
 
 logger = get_logger("stats")
 
-STATS_DIR = Path(
-    os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
-) / "captivity"
+STATS_DIR = (
+    Path(os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")))
+    / "captivity"
+)
 STATS_FILE = STATS_DIR / "stats.json"
 
 # Maximum history entries kept
@@ -145,8 +146,11 @@ class StatsDatabase:
                 self._networks[key] = NetworkStats.from_dict(ns_data)
             for ev_data in data.get("history", []):
                 self._history.append(ConnectionEvent.from_dict(ev_data))
-            logger.debug("Loaded stats: %d networks, %d events",
-                         len(self._networks), len(self._history))
+            logger.debug(
+                "Loaded stats: %d networks, %d events",
+                len(self._networks),
+                len(self._history),
+            )
         except (json.JSONDecodeError, KeyError) as exc:
             logger.warning("Stats corrupted, resetting: %s", exc)
             self._networks = {}
@@ -243,6 +247,5 @@ class StatsDatabase:
     def total_bandwidth(self) -> int:
         """Total bytes transferred across all networks."""
         return sum(
-            ns.total_rx_bytes + ns.total_tx_bytes
-            for ns in self._networks.values()
+            ns.total_rx_bytes + ns.total_tx_bytes for ns in self._networks.values()
         )

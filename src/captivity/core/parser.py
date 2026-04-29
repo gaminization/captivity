@@ -34,9 +34,7 @@ class FormField:
     USERNAME_PATTERNS = re.compile(
         r"(user|login|email|account|name|id|uid)", re.IGNORECASE
     )
-    PASSWORD_PATTERNS = re.compile(
-        r"(pass|pwd|secret|credential)", re.IGNORECASE
-    )
+    PASSWORD_PATTERNS = re.compile(r"(pass|pwd|secret|credential)", re.IGNORECASE)
 
     def __init__(
         self,
@@ -51,9 +49,8 @@ class FormField:
     @property
     def is_password(self) -> bool:
         """Check if this is a password field."""
-        return (
-            self.field_type == "password"
-            or bool(self.PASSWORD_PATTERNS.search(self.name))
+        return self.field_type == "password" or bool(
+            self.PASSWORD_PATTERNS.search(self.name)
         )
 
     @property
@@ -61,9 +58,8 @@ class FormField:
         """Check if this is likely a username/email field."""
         if self.field_type == "password":
             return False
-        return (
-            self.field_type in ("text", "email")
-            and bool(self.USERNAME_PATTERNS.search(self.name))
+        return self.field_type in ("text", "email") and bool(
+            self.USERNAME_PATTERNS.search(self.name)
         )
 
     @property

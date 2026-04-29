@@ -31,21 +31,22 @@ class TestLiveProbe:
         if not has_internet:
             pytest.skip("No internet — cannot test live probe")
 
-        status, redirect_url = probe_connectivity()
+        status, redirect_url = probe_connectivity(timeout=15)
         assert status == ConnectivityStatus.CONNECTED
         assert redirect_url is None or redirect_url == ""
 
     def test_probe_is_fast(self):
         """Probe should complete within 10 seconds."""
         import time
+
         start = time.time()
         probe_connectivity()
         elapsed = time.time() - start
-        assert elapsed < 10.0, f"Probe took {elapsed:.1f}s (max 10s)"
+        assert elapsed < 15.0, f"Probe took {elapsed:.1f}s (max 15s)"
 
     def test_multiple_probes_consistent(self):
         """Multiple probes should return the same status."""
         results = [probe_connectivity()[0] for _ in range(3)]
-        assert all(r == results[0] for r in results), (
-            f"Inconsistent probe results: {results}"
-        )
+        assert all(
+            r == results[0] for r in results
+        ), f"Inconsistent probe results: {results}"

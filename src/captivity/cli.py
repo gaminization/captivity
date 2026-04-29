@@ -45,12 +45,19 @@ def cmd_login(args: argparse.Namespace) -> int:
 
 def cmd_probe(args: argparse.Namespace) -> int:
     """Handle the 'probe' subcommand."""
-    from captivity.core.probe import probe_connectivity
+    from captivity.core.probe import probe_connectivity_detailed
 
-    status, redirect_url = probe_connectivity()
-    print(f"Status: {status.value}")
-    if redirect_url:
-        print(f"Redirect: {redirect_url}")
+    result = probe_connectivity_detailed()
+    print(f"Status: {result.status.value}")
+    print(f"Detection method: {result.detection_method}")
+    if result.portal_url:
+        print(f"Portal URL: {result.portal_url}")
+    if result.has_captcha:
+        print("⚠ CAPTCHA detected — manual login required")
+    if result.probe_details:
+        print("Probe details:")
+        for detail in result.probe_details:
+            print(f"  • {detail}")
     return 0
 
 
@@ -103,7 +110,11 @@ def cmd_daemon(args: argparse.Namespace) -> int:
 def cmd_creds(args: argparse.Namespace) -> int:
     """Handle the 'creds' subcommand."""
     from captivity.core.credentials import (
-        store, retrieve, delete, list_networks, CredentialError,
+        store,
+        retrieve,
+        delete,
+        list_networks,
+        CredentialError,
     )
     import getpass
 
@@ -145,6 +156,7 @@ def cmd_plugins(args: argparse.Namespace) -> int:
 
     if action == "search":
         from captivity.plugins.marketplace import Marketplace
+
         mp = Marketplace()
         query = getattr(args, "query", "")
         results = mp.search(query)
@@ -160,6 +172,7 @@ def cmd_plugins(args: argparse.Namespace) -> int:
 
     if action == "install":
         from captivity.plugins.marketplace import Marketplace
+
         mp = Marketplace()
         ok, msg = mp.install(args.package)
         print(msg)
@@ -167,6 +180,7 @@ def cmd_plugins(args: argparse.Namespace) -> int:
 
     if action == "uninstall":
         from captivity.plugins.marketplace import Marketplace
+
         mp = Marketplace()
         ok, msg = mp.uninstall(args.package)
         print(msg)
@@ -174,6 +188,7 @@ def cmd_plugins(args: argparse.Namespace) -> int:
 
     if action == "info":
         from captivity.plugins.marketplace import Marketplace
+
         mp = Marketplace()
         info = mp.get_info(args.package)
         if not info:
@@ -192,6 +207,7 @@ def cmd_plugins(args: argparse.Namespace) -> int:
 
     if action == "installed":
         from captivity.plugins.marketplace import Marketplace
+
         mp = Marketplace()
         entries = mp.list_installed()
         if not entries:
@@ -204,6 +220,7 @@ def cmd_plugins(args: argparse.Namespace) -> int:
 
     # Default: list all discovered plugins (built-in + entry points)
     from captivity.plugins.loader import discover_plugins
+
     plugins = discover_plugins()
     if not plugins:
         print("No plugins found.")
@@ -318,6 +335,7 @@ def cmd_learn(args: argparse.Namespace) -> int:
 
     return 0
 
+
 def cmd_stats(args: argparse.Namespace) -> int:
     """Handle the 'stats' subcommand."""
     from captivity.telemetry.stats import StatsDatabase
@@ -345,7 +363,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
         print("No statistics recorded yet.")
         return 0
 
-    print(f"Connection Statistics")
+    print("Connection Statistics")
     print(f"  Total logins:    {db.total_logins}")
     hours = db.total_uptime / 3600
     print(f"  Total uptime:    {hours:.1f} hours")
@@ -353,10 +371,18 @@ def cmd_stats(args: argparse.Namespace) -> int:
     print()
     print("Per-network:")
     for ns in all_stats:
-        rate = f"{ns.success_rate * 100:.0f}%" if (ns.login_successes + ns.login_failures) > 0 else "n/a"
+        rate = (
+            f"{ns.success_rate * 100:.0f}%"
+            if (ns.login_successes + ns.login_failures) > 0
+            else "n/a"
+        )
         print(f"  {ns.ssid}")
-        print(f"    logins: {ns.login_successes} ok / {ns.login_failures} fail ({rate})")
-        print(f"    uptime: {ns.total_uptime / 3600:.1f}h  bw: {format_bytes(ns.total_rx_bytes + ns.total_tx_bytes)}")
+        print(
+            f"    logins: {ns.login_successes} ok / {ns.login_failures} fail ({rate})"
+        )
+        print(
+            f"    uptime: {ns.total_uptime / 3600:.1f}h  bw: {format_bytes(ns.total_rx_bytes + ns.total_tx_bytes)}"
+        )
         if ns.reconnect_count:
             print(f"    reconnects: {ns.reconnect_count}")
     return 0
@@ -400,6 +426,7 @@ def cmd_simulate(args: argparse.Namespace) -> int:
     sim.start()
     try:
         import time as _t
+
         while True:
             _t.sleep(1)
     except KeyboardInterrupt:
@@ -412,7 +439,10 @@ def cmd_simulate(args: argparse.Namespace) -> int:
 def cmd_config(args: argparse.Namespace) -> int:
     """Handle the 'config' subcommand."""
     from captivity.core.config import (
-        get_config, save_config, generate_default_config, _to_toml,
+        get_config,
+        save_config,
+        generate_default_config,
+        _to_toml,
         reset_config,
     )
 
@@ -431,6 +461,7 @@ def cmd_config(args: argparse.Namespace) -> int:
             try:
                 sec = getattr(config, key_str)
                 from dataclasses import fields as dc_fields
+
                 for f in dc_fields(sec):
                     print(f"{key_str}.{f.name} = {getattr(sec, f.name)!r}")
             except AttributeError:
@@ -478,7 +509,9 @@ def cmd_config(args: argparse.Namespace) -> int:
 def cmd_daemon_rs(args: argparse.Namespace) -> int:
     """Handle the 'daemon-rs' subcommand."""
     from captivity.daemon.bridge import (
-        DaemonBridge, start_daemon, _find_daemon_binary,
+        DaemonBridge,
+        start_daemon,
+        _find_daemon_binary,
     )
 
     action = getattr(args, "daemon_rs_action", None)
@@ -531,6 +564,7 @@ def cmd_daemon_rs(args: argparse.Namespace) -> int:
         print("Failed to start daemon")
         return 1
 
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -538,14 +572,20 @@ def build_parser() -> argparse.ArgumentParser:
         description="Captivity — Autonomous captive portal login client",
     )
     parser.add_argument(
-        "--version", action="version", version=f"captivity {__version__}",
+        "--version",
+        action="version",
+        version=f"captivity {__version__}",
     )
     parser.add_argument(
-        "-v", "--verbose", action="store_true",
+        "-v",
+        "--verbose",
+        action="store_true",
         help="Enable debug output",
     )
     parser.add_argument(
-        "-q", "--quiet", action="store_true",
+        "-q",
+        "--quiet",
+        action="store_true",
         help="Suppress output except errors",
     )
 
@@ -570,13 +610,17 @@ def build_parser() -> argparse.ArgumentParser:
     daemon_parser = subparsers.add_parser("daemon", help="Run reconnect daemon")
     daemon_parser.add_argument("--network", "-n", default=None, help="Network name")
     daemon_parser.add_argument("--portal", "-p", default=None, help="Portal URL")
-    daemon_parser.add_argument("--interval", "-i", type=int, default=30, help="Probe interval (seconds)")
+    daemon_parser.add_argument(
+        "--interval", "-i", type=int, default=30, help="Probe interval (seconds)"
+    )
     daemon_parser.add_argument("--once", action="store_true", help="Run a single probe")
     daemon_parser.set_defaults(func=cmd_daemon)
 
     # creds
     creds_parser = subparsers.add_parser("creds", help="Manage credentials")
-    creds_sub = creds_parser.add_subparsers(dest="creds_action", help="Credential commands")
+    creds_sub = creds_parser.add_subparsers(
+        dest="creds_action", help="Credential commands"
+    )
     store_p = creds_sub.add_parser("store", help="Store credentials")
     store_p.add_argument("network", help="Network name")
     retrieve_p = creds_sub.add_parser("retrieve", help="Retrieve credentials")
@@ -588,10 +632,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     # plugins
     plugins_parser = subparsers.add_parser(
-        "plugins", help="Manage plugins and marketplace",
+        "plugins",
+        help="Manage plugins and marketplace",
     )
     plugins_sub = plugins_parser.add_subparsers(
-        dest="plugins_action", help="Plugin commands",
+        dest="plugins_action",
+        help="Plugin commands",
     )
     search_p = plugins_sub.add_parser("search", help="Search marketplace")
     search_p.add_argument("query", nargs="?", default="", help="Search query")
@@ -611,7 +657,9 @@ def build_parser() -> argparse.ArgumentParser:
     # tray
     tray_parser = subparsers.add_parser("tray", help="Launch system tray icon")
     tray_parser.add_argument("--network", "-n", default=None, help="Network name")
-    tray_parser.add_argument("--no-notify", action="store_true", help="Disable notifications")
+    tray_parser.add_argument(
+        "--no-notify", action="store_true", help="Disable notifications"
+    )
     tray_parser.set_defaults(func=cmd_tray)
 
     # learn
@@ -638,27 +686,36 @@ def build_parser() -> argparse.ArgumentParser:
 
     # simulate
     sim_parser = subparsers.add_parser(
-        "simulate", help="Run portal simulator for testing",
+        "simulate",
+        help="Run portal simulator for testing",
     )
     sim_parser.add_argument(
-        "--port", type=int, default=9090, help="Simulator port (default: 9090)",
+        "--port",
+        type=int,
+        default=9090,
+        help="Simulator port (default: 9090)",
     )
     sim_parser.add_argument(
-        "--scenario", default="simple",
+        "--scenario",
+        default="simple",
         help="Scenario name (default: simple)",
     )
     sim_parser.add_argument(
-        "--list", dest="list_scenarios", action="store_true",
+        "--list",
+        dest="list_scenarios",
+        action="store_true",
         help="List available scenarios",
     )
     sim_parser.set_defaults(func=cmd_simulate)
 
     # config
     config_parser = subparsers.add_parser(
-        "config", help="Manage configuration",
+        "config",
+        help="Manage configuration",
     )
     config_sub = config_parser.add_subparsers(
-        dest="config_action", help="Config commands",
+        dest="config_action",
+        help="Config commands",
     )
     config_sub.add_parser("show", help="Show all config")
     config_sub.add_parser("init", help="Generate default config file")
@@ -672,10 +729,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     # daemon-rs
     drs_parser = subparsers.add_parser(
-        "daemon-rs", help="Launch Rust networking daemon",
+        "daemon-rs",
+        help="Launch Rust networking daemon",
     )
     drs_sub = drs_parser.add_subparsers(
-        dest="daemon_rs_action", help="Daemon commands",
+        dest="daemon_rs_action",
+        help="Daemon commands",
     )
     drs_sub.add_parser("status", help="Query daemon status")
     drs_sub.add_parser("stop", help="Stop the daemon")
@@ -702,3 +761,7 @@ def main() -> None:
     # Dispatch to subcommand
     exit_code = args.func(args)
     sys.exit(exit_code)
+
+
+if __name__ == "__main__":
+    main()

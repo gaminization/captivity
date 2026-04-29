@@ -6,15 +6,18 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# Use the pip-installed CLI entry point
-# For system-wide install, change to: /usr/local/bin/captivity daemon
-ExecStart=%h/.local/bin/captivity daemon
-Restart=on-failure
-RestartSec=10
+User=garvarora
+ExecStart=/home/garvarora/.local/bin/captivity daemon
+Restart=always
+RestartSec=3
+StartLimitBurst=5
+StartLimitIntervalSec=30
 # Allow reading credentials from user keyring
-Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/garvarora/.Xauthority
 # Load network config (optional)
-EnvironmentFile=-%h/.config/captivity/env
+EnvironmentFile=-/home/garvarora/.config/captivity/env
 
 # Logging
 StandardOutput=journal
@@ -26,7 +29,7 @@ NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=read-only
 PrivateTmp=yes
-ReadWritePaths=/tmp %h/.local/share/captivity
+ReadWritePaths=/tmp /home/garvarora/.local/share/captivity
 
 [Install]
 WantedBy=default.target

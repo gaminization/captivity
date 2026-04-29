@@ -1,7 +1,7 @@
 """Tests for captivity.plugins module."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import requests
 
@@ -29,13 +29,13 @@ class TestProntoPlugin(unittest.TestCase):
     def test_detect_by_content(self):
         response = MagicMock()
         response.url = "http://some-portal.com"
-        response.text = '<form>ProntoNetworks portal</form>'
+        response.text = "<form>ProntoNetworks portal</form>"
         self.assertTrue(self.plugin.detect(response))
 
     def test_no_detect_unrelated(self):
         response = MagicMock()
         response.url = "http://other-portal.com"
-        response.text = '<form>Some other portal</form>'
+        response.text = "<form>Some other portal</form>"
         self.assertFalse(self.plugin.detect(response))
 
     def test_login_success(self):
@@ -88,7 +88,7 @@ class TestGenericPlugin(unittest.TestCase):
 
     def test_no_detect_without_form(self):
         response = MagicMock()
-        response.text = '<html><p>No forms here</p></html>'
+        response.text = "<html><p>No forms here</p></html>"
         self.assertFalse(self.plugin.detect(response))
 
     def test_priority_lower_than_pronto(self):
@@ -145,12 +145,15 @@ class TestPluginInterface(unittest.TestCase):
 
     def test_default_priority(self):
         """Custom plugins get priority 0 by default."""
+
         class TestPlugin(CaptivePortalPlugin):
             @property
             def name(self):
                 return "test"
+
             def detect(self, response):
                 return True
+
             def login(self, session, portal_url, username, password):
                 return True
 
