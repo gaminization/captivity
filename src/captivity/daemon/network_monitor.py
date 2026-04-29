@@ -1,15 +1,18 @@
 """
-Event-driven network monitor.
+Cross-platform event-driven network monitor.
 
-Provides dual-layer monitoring (nmcli + DBus fallback) to capture
-network state changes without polling. Pushes normalized events
-to a thread-safe queue.
+Provides platform-aware monitoring:
+  - Linux: nmcli monitor (primary) + dbus-monitor (fallback)
+  - macOS/Windows: polling-based fallback using HTTP probes
+
+Pushes normalized NetworkEvent instances to a thread-safe queue.
 """
 
-import subprocess
-import threading
 import queue
 import shutil
+import subprocess
+import sys
+import threading
 import time
 from enum import Enum, auto
 from typing import Optional
@@ -46,21 +49,33 @@ class NetworkMonitor(threading.Thread):
             self._process.terminate()
 
     def run(self) -> None:
-        """Main loop with auto-reconciliation and dual-layer fallback."""
+        """Main loop with platform-aware monitoring strategy."""
         while self.should_run:
-            if shutil.which("nmcli"):
-                logger.debug("Starting nmcli monitor")
-                self._run_nmcli_monitor()
-            elif shutil.which("dbus-monitor"):
-                logger.debug("Starting dbus-monitor fallback")
-                self._run_dbus_monitor()
+            if sys.platform == "linux":
+                self._run_linux_monitor()
             else:
-                logger.error("No monitoring tools available. Event loss imminent.")
-                time.sleep(10)  # Crash resilience
+                # macOS and Windows: polling fallback
+                logger.info(
+                    "Using polling monitor for platform",
+                    extra={"platform": sys.platform},
+                )
+                self._run_polling_monitor()
 
             if self.should_run:
                 logger.warning("Monitor subprocess exited. Restarting in 5s.")
                 time.sleep(5)
+
+    def _run_linux_monitor(self) -> None:
+        """Linux-specific: nmcli primary, dbus-monitor fallback."""
+        if shutil.which("nmcli"):
+            logger.debug("Starting nmcli monitor")
+            self._run_nmcli_monitor()
+        elif shutil.which("dbus-monitor"):
+            logger.debug("Starting dbus-monitor fallback")
+            self._run_dbus_monitor()
+        else:
+            logger.error("No Linux monitoring tools available.")
+            self._run_polling_monitor()
 
     def _run_nmcli_monitor(self) -> None:
         """Run nmcli monitor and parse output."""
@@ -153,6 +168,42 @@ class NetworkMonitor(threading.Thread):
             if self._process:
                 self._process.terminate()
 
+    def _run_polling_monitor(self, interval: float = 10.0) -> None:
+        """Cross-platform fallback: poll connectivity via HTTP probe.
+
+        Used on macOS, Windows, or Linux when nmcli/dbus are unavailable.
+        Emits CONNECTED or DISCONNECTED based on HTTP 204 probe results.
+        """
+        import requests
+
+        probe_url = "http://clients3.google.com/generate_204"
+        last_state: Optional[NetworkEvent] = None
+
+        while self.should_run:
+            try:
+                resp = requests.get(probe_url, timeout=5, allow_redirects=False)
+                if resp.status_code == 204:
+                    current = NetworkEvent.CONNECTED
+                elif resp.status_code in (301, 302, 307, 308):
+                    current = NetworkEvent.PORTAL
+                else:
+                    current = NetworkEvent.DISCONNECTED
+            except Exception:
+                current = NetworkEvent.DISCONNECTED
+
+            if current != last_state:
+                logger.debug(
+                    "Polling monitor state change",
+                    extra={
+                        "old": last_state.name if last_state else "NONE",
+                        "new": current.name,
+                    },
+                )
+                self.event_queue.put(current)
+                last_state = current
+
+            time.sleep(interval)
+
     def get_event(self, timeout: float) -> Optional[NetworkEvent]:
         """Get the next network event, or None if timeout."""
         try:
@@ -162,7 +213,26 @@ class NetworkMonitor(threading.Thread):
 
 
 def get_active_wifi_ssid() -> Optional[str]:
-    """Get the SSID of the currently active WiFi connection."""
+    """Get the SSID of the currently active WiFi connection.
+
+    Platform support:
+      - Linux: nmcli
+      - macOS: airport utility
+      - Windows: netsh wlan
+    """
+    if sys.platform == "linux":
+        return _get_ssid_linux()
+    elif sys.platform == "darwin":
+        return _get_ssid_macos()
+    elif sys.platform == "win32":
+        return _get_ssid_windows()
+    else:
+        logger.warning("Unsupported platform for SSID detection: %s", sys.platform)
+        return None
+
+
+def _get_ssid_linux() -> Optional[str]:
+    """Get active WiFi SSID on Linux via nmcli."""
     if not shutil.which("nmcli"):
         return None
     try:
@@ -178,5 +248,50 @@ def get_active_wifi_ssid() -> Optional[str]:
                 if ssid:
                     return ssid
     except (subprocess.TimeoutExpired, OSError):
+        pass
+    return None
+
+
+def _get_ssid_macos() -> Optional[str]:
+    """Get active WiFi SSID on macOS via airport utility."""
+    airport_path = (
+        "/System/Library/PrivateFrameworks/Apple80211.framework"
+        "/Versions/Current/Resources/airport"
+    )
+    try:
+        result = subprocess.run(
+            [airport_path, "-I"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if line.startswith("SSID:"):
+                ssid = line.split(":", 1)[1].strip()
+                if ssid:
+                    return ssid
+    except (subprocess.TimeoutExpired, OSError, FileNotFoundError):
+        pass
+    return None
+
+
+def _get_ssid_windows() -> Optional[str]:
+    """Get active WiFi SSID on Windows via netsh."""
+    try:
+        result = subprocess.run(
+            ["netsh", "wlan", "show", "interfaces"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            # Match "SSID" but not "BSSID"
+            if line.startswith("SSID") and not line.startswith("BSSID"):
+                ssid = line.split(":", 1)[1].strip()
+                if ssid:
+                    return ssid
+    except (subprocess.TimeoutExpired, OSError, FileNotFoundError):
         pass
     return None

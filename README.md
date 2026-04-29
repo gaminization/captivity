@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/gaminization/captivity/releases"><img src="https://img.shields.io/badge/version-2.3.0-blue?style=flat-square" alt="Version"></a>
+  <a href="https://github.com/gaminization/captivity/releases"><img src="https://img.shields.io/badge/version-2.4.0-blue?style=flat-square" alt="Version"></a>
   <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/gaminization/captivity/ci.yml?branch=main&style=flat-square&label=tests" alt="CI"></a>
   <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-tested-green?style=flat-square" alt="Coverage"></a>
   <a href="https://github.com/gaminization/captivity/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-orange?style=flat-square" alt="License"></a>

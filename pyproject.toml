@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "captivity-cli"
-version = "2.3.0"
+version = "2.4.0"
 description = "Autonomous captive portal login client — never open a browser to log into WiFi again"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -39,7 +39,9 @@ classifiers = [
 dependencies = [
     "requests>=2.20",
     "keyring>=24.0.0",
+    "pywin32>=306 ; sys_platform == 'win32'",
 ]
+
 
 [project.optional-dependencies]
 dev = [

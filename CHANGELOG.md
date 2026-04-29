@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v2.4.0] — 2026-04-29
+
+### Added
+- **Cross-Platform Network Monitor:** `network_monitor.py` now dispatches to platform-specific strategies — Linux uses `nmcli`/`dbus-monitor` (unchanged), while macOS and Windows use a new HTTP polling fallback (`_run_polling_monitor`) that detects connectivity, portals, and disconnections via `generate_204` probes.
+- **Platform-Aware SSID Detection:** `get_active_wifi_ssid()` now supports macOS (`airport -I`) and Windows (`netsh wlan show interfaces`) in addition to Linux (`nmcli`).
+- **macOS launchd Integration:** Added `launchd/com.gaminization.captivity.plist` and `scripts/install-launchd.sh` for one-command daemon installation on macOS.
+- **Windows Service Integration:** Added `src/captivity/daemon/win_service.py` (pywin32 `ServiceFramework` wrapper) and `scripts/install-windows-service.ps1` for SCM-managed daemon installation on Windows.
+- **Platform-Conditional Dependency:** `pywin32>=306` is now declared as a Windows-only dependency in `pyproject.toml`.
+
+---
+
 ## [v2.3.0] — 2026-04-29
 
 ### Added
