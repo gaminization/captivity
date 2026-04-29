@@ -11,6 +11,7 @@ based on their detect() method.
 """
 
 import importlib
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -35,19 +36,76 @@ def _load_class(dotted_path: str) -> type:
     return getattr(module, class_name)
 
 
+def _user_plugin_dir() -> Path:
+    """Get the user plugin directory."""
+    import os
+
+    base = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+    return Path(base) / "captivity" / "plugins"
+
+
+def _load_user_plugins() -> list[CaptivePortalPlugin]:
+    """Scan user plugin directory for plugin classes.
+
+    Looks for .py files in ~/.local/share/captivity/plugins/ that
+    contain classes inheriting from CaptivePortalPlugin.
+
+    Returns:
+        List of instantiated user plugin instances.
+    """
+    plugin_dir = _user_plugin_dir()
+    plugins: list[CaptivePortalPlugin] = []
+
+    if not plugin_dir.is_dir():
+        return plugins
+
+    import importlib.util
+
+    for py_file in sorted(plugin_dir.glob("*.py")):
+        if py_file.name.startswith("_"):
+            continue
+
+        module_name = f"captivity_user_plugin_{py_file.stem}"
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, py_file)
+            if spec is None or spec.loader is None:
+                continue
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if (
+                    isinstance(attr, type)
+                    and issubclass(attr, CaptivePortalPlugin)
+                    and attr is not CaptivePortalPlugin
+                ):
+                    plugin = attr()
+                    plugins.append(plugin)
+                    logger.info("Loaded user plugin: %s from %s", plugin.name, py_file.name)
+
+        except Exception as exc:
+            logger.warning("Failed to load user plugin %s: %s", py_file.name, exc)
+
+    return plugins
+
+
 def discover_plugins() -> list[CaptivePortalPlugin]:
     """Discover and instantiate all available plugins.
 
     Loads plugins from:
         1. Built-in plugins
         2. Entry points (if importlib.metadata available)
+        3. User plugin directory (~/.local/share/captivity/plugins/)
+
+    Calls on_load() on each plugin and skips plugins that fail validate().
 
     Returns:
         List of plugin instances sorted by priority (highest first).
     """
     plugins = []
 
-    # Load built-in plugins
+    # Layer 1: Load built-in plugins
     for path in _BUILTIN_PLUGINS:
         try:
             cls = _load_class(path)
@@ -56,7 +114,7 @@ def discover_plugins() -> list[CaptivePortalPlugin]:
         except Exception as exc:
             logger.warning("Failed to load built-in plugin %s: %s", path, exc)
 
-    # Load entry point plugins
+    # Layer 2: Load entry point plugins
     try:
         from importlib.metadata import entry_points
 
@@ -82,16 +140,35 @@ def discover_plugins() -> list[CaptivePortalPlugin]:
     except ImportError:
         logger.debug("importlib.metadata not available, skipping entry points")
 
+    # Layer 3: Load user plugins from directory
+    plugins.extend(_load_user_plugins())
+
+    # Lifecycle: call on_load() and validate()
+    validated = []
+    for plugin in plugins:
+        try:
+            plugin.on_load()
+        except Exception as exc:
+            logger.warning("Plugin %s on_load() failed: %s", plugin.name, exc)
+
+        try:
+            if plugin.validate():
+                validated.append(plugin)
+            else:
+                logger.warning("Plugin %s failed validation, skipping", plugin.name)
+        except Exception as exc:
+            logger.warning("Plugin %s validate() error: %s", plugin.name, exc)
+
     # Sort by priority (highest first)
-    plugins.sort(key=lambda p: p.priority, reverse=True)
+    validated.sort(key=lambda p: p.priority, reverse=True)
 
     logger.info(
         "Discovered %d plugins: %s",
-        len(plugins),
-        ", ".join(p.name for p in plugins),
+        len(validated),
+        ", ".join(p.name for p in validated),
     )
 
-    return plugins
+    return validated
 
 
 def select_plugin(

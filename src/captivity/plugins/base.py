@@ -66,3 +66,28 @@ class CaptivePortalPlugin(ABC):
         Returns:
             True if login was successful.
         """
+
+    # --- Lifecycle hooks (optional, default no-ops) ---
+
+    def on_load(self) -> None:
+        """Called when the plugin is discovered and instantiated.
+
+        Override to perform setup (e.g. load config, initialize state).
+        """
+
+    def on_unload(self) -> None:
+        """Called when the plugin is being removed or the system shuts down.
+
+        Override to perform cleanup (e.g. close connections, flush logs).
+        """
+
+    def validate(self) -> bool:
+        """Self-check that the plugin is functional.
+
+        Override to verify dependencies, config, or connectivity.
+        Plugins that return False are skipped during discovery.
+
+        Returns:
+            True if the plugin is ready for use. Default: True.
+        """
+        return True
