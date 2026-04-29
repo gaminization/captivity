@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v2.3.0] — 2026-04-29
+
+### Added
+- **Structured JSON Logging:** A new `JSONFormatter` in `captivity.utils.logging` emits fully structured JSON log events for production daemon environments, configurable via `CAPTIVITY_DAEMON_LOG_FORMAT=json` or `config.toml`.
+- **Fault Recovery Hardening:** The daemon (`runner.py`) now includes a `FaultTracker` that implements exponential backoff during crash loops and gracefully terminates the process (allowing `systemd` to cleanly restart it) if a fatal threshold is reached (e.g., 5 crashes in 5 minutes).
+- **Structured Diagnostics:** Key daemon lifecycle events (e.g., probe complete, network event received) now utilize Python's `extra={}` log kwargs to emit structured key-value data directly into the JSON log stream.
+
+---
+
 ## [v2.2.0] — 2026-04-28
 
 ### Added

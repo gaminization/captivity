@@ -21,6 +21,7 @@ logger = get_logger("network_monitor")
 
 class NetworkEvent(Enum):
     """Normalized network events."""
+
     CONNECTED = auto()
     DISCONNECTED = auto()
     PORTAL = auto()
@@ -28,7 +29,7 @@ class NetworkEvent(Enum):
 
 class NetworkMonitor(threading.Thread):
     """Background thread that monitors for network changes.
-    
+
     Yields normalized NetworkEvent instances to its queue.
     """
 
@@ -56,7 +57,7 @@ class NetworkMonitor(threading.Thread):
             else:
                 logger.error("No monitoring tools available. Event loss imminent.")
                 time.sleep(10)  # Crash resilience
-            
+
             if self.should_run:
                 logger.warning("Monitor subprocess exited. Restarting in 5s.")
                 time.sleep(5)
@@ -71,7 +72,7 @@ class NetworkMonitor(threading.Thread):
                 text=True,
                 bufsize=1,  # Line buffered
             )
-            
+
             if not self._process.stdout:
                 return
 
@@ -82,7 +83,7 @@ class NetworkMonitor(threading.Thread):
                 if event:
                     logger.debug("Normalized event: %s", event.name)
                     self.event_queue.put(event)
-                    
+
         except Exception as exc:
             logger.error("nmcli monitor crashed: %s", exc)
         finally:
@@ -97,7 +98,11 @@ class NetworkMonitor(threading.Thread):
                 return NetworkEvent.CONNECTED
             elif "'connected (site only)' state" in line:
                 return NetworkEvent.PORTAL
-            elif "'disconnected' state" in line or "'connecting' state" in line or "'connected (local only)' state" in line:
+            elif (
+                "'disconnected' state" in line
+                or "'connecting' state" in line
+                or "'connected (local only)' state" in line
+            ):
                 return NetworkEvent.DISCONNECTED
         return None
 
@@ -108,14 +113,14 @@ class NetworkMonitor(threading.Thread):
                 [
                     "dbus-monitor",
                     "--system",
-                    "type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='/org/freedesktop/NetworkManager'"
+                    "type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='/org/freedesktop/NetworkManager'",
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
                 text=True,
                 bufsize=1,
             )
-            
+
             if not self._process.stdout:
                 return
 
@@ -125,13 +130,13 @@ class NetworkMonitor(threading.Thread):
             for line in iter(self._process.stdout.readline, ""):
                 if not self.should_run:
                     break
-                
+
                 buffer.append(line.strip())
                 if len(buffer) > 10:
                     buffer.pop(0)
-                    
+
                 joined = " ".join(buffer)
-                if "string \"Connectivity\"" in joined.lower():
+                if 'string "Connectivity"' in joined.lower():
                     if "uint32 4" in joined.lower():
                         self.event_queue.put(NetworkEvent.CONNECTED)
                         buffer.clear()
@@ -154,6 +159,7 @@ class NetworkMonitor(threading.Thread):
             return self.event_queue.get(timeout=timeout)
         except queue.Empty:
             return None
+
 
 def get_active_wifi_ssid() -> Optional[str]:
     """Get the SSID of the currently active WiFi connection."""

@@ -63,6 +63,7 @@ class DaemonConfig:
     retry_max_delay: float = 300.0
     max_retries: int = 10
     log_level: str = "INFO"
+    log_format: str = "text"
 
 
 @dataclass

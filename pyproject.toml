@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "captivity-cli"
-version = "2.2.0"
+version = "2.3.0"
 description = "Autonomous captive portal login client — never open a browser to log into WiFi again"
 readme = "README.md"
 license = {text = "Apache-2.0"}

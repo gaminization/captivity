@@ -25,8 +25,47 @@ from captivity.core.retry import RetryEngine, RetryConfig, FailureType
 from captivity.daemon.events import Event, EventBus
 from captivity.daemon.network_monitor import NetworkMonitor, NetworkEvent
 from captivity.utils.logging import get_logger
+import sys
 
 logger = get_logger("daemon")
+
+
+class FaultTracker:
+    """Tracks daemon crashes and controls exponential backoff and fatal shutdown."""
+
+    def __init__(
+        self, max_crashes_per_window: int = 5, window_seconds: float = 300.0
+    ) -> None:
+        self.crash_timestamps: list[float] = []
+        self.max_crashes = max_crashes_per_window
+        self.window_seconds = window_seconds
+        self.base_delay = 5.0
+        self.max_delay = 60.0
+
+    def record_crash(self) -> float:
+        """Records a crash and returns the recommended sleep duration. Raises SystemExit if fatal."""
+        now = time.time()
+        # Clean up old crashes outside the window
+        self.crash_timestamps = [
+            t for t in self.crash_timestamps if now - t <= self.window_seconds
+        ]
+        self.crash_timestamps.append(now)
+
+        if len(self.crash_timestamps) > self.max_crashes:
+            logger.critical(
+                "Fatal crash limit exceeded",
+                extra={
+                    "crashes": len(self.crash_timestamps),
+                    "window": self.window_seconds,
+                },
+            )
+            sys.exit(1)
+
+        # Exponential backoff based on number of recent crashes
+        delay = min(
+            self.max_delay, self.base_delay * (2 ** (len(self.crash_timestamps) - 1))
+        )
+        return delay
 
 
 class DaemonRunner:
@@ -61,6 +100,8 @@ class DaemonRunner:
         self.last_event_time: float = time.time()
         self.reconciliation_interval = 30.0  # seconds
 
+        self.fault_tracker = FaultTracker()
+
         # Adaptive CAPTCHA cooldown
         self.browser_open_count = 0
         self.last_browser_open_time = 0.0
@@ -69,7 +110,10 @@ class DaemonRunner:
         signal.signal(signal.SIGINT, self._handle_signal)
 
     def _handle_signal(self, signum: int, frame) -> None:
-        logger.info("SIGNAL_RECEIVED ACTION=SHUTDOWN SIGNAL=%s", signum)
+        logger.info(
+            "Signal received, initiating shutdown",
+            extra={"action": "SHUTDOWN", "signal": signum},
+        )
         self.should_run = False
         self.monitor.stop()
 
@@ -106,13 +150,18 @@ class DaemonRunner:
             self.browser_open_count += 1
             self.last_browser_open_time = time.time()
             logger.info(
-                "BROWSER_COOLDOWN_PASSED ACTION=ALLOW_OPEN COUNT=%d COOLDOWN=%ds",
-                self.browser_open_count,
-                cooldown,
+                "Browser cooldown passed, allowing open",
+                extra={
+                    "action": "ALLOW_OPEN",
+                    "count": self.browser_open_count,
+                    "cooldown_seconds": cooldown,
+                },
             )
             return True
 
-        logger.debug("BROWSER_COOLDOWN_ACTIVE REMAINING=%.1fs", cooldown - elapsed)
+        logger.debug(
+            "Browser cooldown active", extra={"remaining_seconds": cooldown - elapsed}
+        )
         return False
 
     def _run_probe(self) -> None:
@@ -122,10 +171,13 @@ class DaemonRunner:
         result = probe_connectivity_detailed(url=self.portal_url or "")
 
         logger.info(
-            "PROBE_COMPLETE STATE=PROBING RESULT=%s METHOD=%s REASON='%s'",
-            result.status.value,
-            result.detection_method,
-            "|".join(result.probe_details),
+            "Probe complete",
+            extra={
+                "state": "PROBING",
+                "result": result.status.value,
+                "method": result.detection_method,
+                "reason": "|".join(result.probe_details),
+            },
         )
 
         if result.status == ConnectivityStatus.CONNECTED:
@@ -144,7 +196,9 @@ class DaemonRunner:
             self.network = get_active_wifi_ssid()
 
         if not self.network:
-            logger.error("LOGIN_FAILED REASON='No active WiFi network known'")
+            logger.error(
+                "Login failed", extra={"reason": "No active WiFi network known"}
+            )
             self.state_machine.transition(ConnectionState.ERROR)
             return
 
@@ -162,23 +216,26 @@ class DaemonRunner:
             )
 
             if login_result == LoginResult.SUCCESS:
-                logger.info("LOGIN_COMPLETE RESULT=SUCCESS")
+                logger.info("Login complete", extra={"result": "SUCCESS"})
                 self.state_machine.transition(ConnectionState.CONNECTED)
             elif login_result == LoginResult.WAIT_USER:
-                logger.info("LOGIN_DEFERRED RESULT=WAIT_USER ACTION=POLL_BACKGROUND")
+                logger.info(
+                    "Login deferred to user",
+                    extra={"result": "WAIT_USER", "action": "POLL_BACKGROUND"},
+                )
                 self.state_machine.transition(ConnectionState.WAIT_USER)
             else:
-                logger.warning("LOGIN_COMPLETE RESULT=FAILED")
+                logger.warning("Login failed", extra={"result": "FAILED"})
                 self.state_machine.transition(ConnectionState.ERROR)
 
         except Exception as exc:
-            logger.error("LOGIN_ERROR EXCEPTION='%s'", exc)
+            logger.error("Login encountered an error", extra={"exception": str(exc)})
             self.state_machine.transition(ConnectionState.ERROR)
 
     def _handle_network_event(self, event: NetworkEvent) -> None:
         """Handle normalized events from the network monitor."""
         self.last_event_time = time.time()
-        logger.info("NETWORK_EVENT_RECEIVED EVENT=%s", event.name)
+        logger.info("Network event received", extra={"event": event.name})
 
         if event == NetworkEvent.DISCONNECTED:
             self.state_machine.transition(ConnectionState.ERROR)
@@ -188,7 +245,7 @@ class DaemonRunner:
 
     def run(self) -> None:
         """Failure-proof main event loop."""
-        logger.info("DAEMON_STARTUP ACTION=INIT")
+        logger.info("Daemon starting up", extra={"action": "INIT"})
         self.monitor.start()
 
         # Startup stabilization: wait for network to settle, then force initial evaluation
@@ -220,7 +277,11 @@ class DaemonRunner:
                         if self.state_machine.state == ConnectionState.WAIT_USER:
                             if result.status == ConnectivityStatus.CONNECTED:
                                 logger.info(
-                                    "RECONCILIATION RESULT=INTERNET_RESTORED ACTION=CONNECTED"
+                                    "Reconciliation loop restored internet connection",
+                                    extra={
+                                        "result": "INTERNET_RESTORED",
+                                        "action": "CONNECTED",
+                                    },
                                 )
                                 self.state_machine.transition(ConnectionState.CONNECTED)
                             elif result.status == ConnectivityStatus.PORTAL_DETECTED:
@@ -229,7 +290,11 @@ class DaemonRunner:
                         elif self.state_machine.state == ConnectionState.CONNECTED:
                             if result.status != ConnectivityStatus.CONNECTED:
                                 logger.warning(
-                                    "RECONCILIATION RESULT=CONNECTION_LOST ACTION=PROBE"
+                                    "Reconciliation loop lost connection",
+                                    extra={
+                                        "result": "CONNECTION_LOST",
+                                        "action": "PROBE",
+                                    },
                                 )
                                 self._run_probe()
 
@@ -237,24 +302,32 @@ class DaemonRunner:
                 if self.state_machine.state == ConnectionState.RETRY:
                     if self.retry_engine.should_retry():
                         logger.info(
-                            "RETRY_TRIGGERED ACTION=PROBE ATTEMPT=%d",
-                            self.retry_engine.attempt,
+                            "Triggering retry probe",
+                            extra={
+                                "action": "PROBE",
+                                "attempt": self.retry_engine.attempt,
+                            },
                         )
                         self._run_probe()
 
             except Exception as exc:
                 # Phase 6: Crash Resilience
+                sleep_delay = self.fault_tracker.record_crash()
                 logger.error(
-                    "CRASH_LOOP_PREVENTION EXCEPTION='%s' ACTION=SLEEP_30",
-                    exc,
+                    "Crash loop prevention activated",
+                    extra={
+                        "exception": str(exc),
+                        "action": "SLEEP",
+                        "sleep_seconds": sleep_delay,
+                    },
                     exc_info=True,
                 )
                 if self.should_run:
-                    time.sleep(30)
+                    time.sleep(sleep_delay)
                 # Ensure we recover to a safe state
                 try:
                     self.state_machine.transition(ConnectionState.ERROR)
                 except InvalidTransition:
                     pass
 
-        logger.info("DAEMON_SHUTDOWN ACTION=STOP")
+        logger.info("Daemon shutting down", extra={"action": "STOP"})

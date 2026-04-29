@@ -77,6 +77,27 @@ class TestDaemonRunner(unittest.TestCase):
         ):
             self.assertTrue(self.runner._should_open_browser())
 
+    def test_fault_tracker_exponential_backoff(self):
+        from captivity.daemon.runner import FaultTracker
+
+        tracker = FaultTracker(max_crashes_per_window=3)
+
+        # 1st crash: base delay
+        delay1 = tracker.record_crash()
+        self.assertEqual(delay1, 5.0)
+
+        # 2nd crash: double
+        delay2 = tracker.record_crash()
+        self.assertEqual(delay2, 10.0)
+
+        # 3rd crash: double again
+        delay3 = tracker.record_crash()
+        self.assertEqual(delay3, 20.0)
+
+        # 4th crash: fatal (exceeds 3)
+        with self.assertRaises(SystemExit):
+            tracker.record_crash()
+
 
 if __name__ == "__main__":
     unittest.main()

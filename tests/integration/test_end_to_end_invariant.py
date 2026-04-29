@@ -16,9 +16,13 @@ class TestEndToEndInvariant(unittest.TestCase):
     @patch("captivity.daemon.runner.do_login")
     @patch("captivity.daemon.runner.probe_connectivity_detailed")
     @patch("captivity.daemon.runner.NetworkMonitor")
-    def test_invariant_convergence(self, mock_monitor, mock_probe, mock_login, mock_sleep):
+    def test_invariant_convergence(
+        self, mock_monitor, mock_probe, mock_login, mock_sleep
+    ):
         """Test the strict invariant sequence: PORTAL -> LOGIN -> CONNECTED."""
-        runner = DaemonRunner(network="test_net", portal_url="http://portal.example.com")
+        runner = DaemonRunner(
+            network="test_net", portal_url="http://portal.example.com"
+        )
         runner.monitor = mock_monitor.return_value
         runner.state_machine.debounce_duration = 0.0
 
@@ -26,14 +30,14 @@ class TestEndToEndInvariant(unittest.TestCase):
         mock_result_portal = MagicMock()
         mock_result_portal.status = ConnectivityStatus.PORTAL_DETECTED
         mock_result_portal.detection_method = "invariant_test"
-        
+
         mock_result_connected = MagicMock()
         mock_result_connected.status = ConnectivityStatus.CONNECTED
         mock_result_connected.detection_method = "invariant_test"
 
         # The sequence of probe returns: First it's a portal, then after login it's connected
         mock_probe.side_effect = [mock_result_portal, mock_result_connected]
-        
+
         # Login is successful
         mock_login.return_value = LoginResult.SUCCESS
 
