@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v2.8.0] — 2026-05-05
+
+### Added
+- **Android Companion (PWA):** The web dashboard now includes a Web App Manifest and Service Worker, making it fully installable on Android devices as a Progressive Web App.
+- **Remote Monitoring:** Added `--remote` and `--host` flags to the `captivity dashboard` CLI command to allow binding to external interfaces.
+- **Dashboard Authentication:** Added `--password` flag to the dashboard CLI. When enabled, all API endpoints and the web UI require a bearer token or URL parameter for secure remote access.
+
+---
+
 ## [v2.7.0] — 2026-05-05
 
 ### Added

@@ -393,8 +393,14 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
     from captivity.dashboard.server import DashboardServer
 
     port = getattr(args, "port", 8787)
-    server = DashboardServer(port=port)
-    print(f"Starting dashboard at http://127.0.0.1:{port}")
+    host = getattr(args, "host", "127.0.0.1")
+    if getattr(args, "remote", False):
+        host = "0.0.0.0"
+    password = getattr(args, "password", None)
+
+    server = DashboardServer(host=host, port=port, password=password)
+    auth_msg = " (password protected)" if password else ""
+    print(f"Starting dashboard at http://{host}:{port}{auth_msg}")
     print("Press Ctrl+C to stop.")
     server.start(blocking=True)
     return 0
@@ -682,6 +688,13 @@ def build_parser() -> argparse.ArgumentParser:
     # dashboard
     dash_parser = subparsers.add_parser("dashboard", help="Launch web dashboard")
     dash_parser.add_argument("--port", type=int, default=8787, help="Dashboard port")
+    dash_parser.add_argument("--host", type=str, default="127.0.0.1", help="Bind host")
+    dash_parser.add_argument(
+        "--remote", action="store_true", help="Bind to 0.0.0.0 for remote access"
+    )
+    dash_parser.add_argument(
+        "--password", type=str, default=None, help="Require password for access"
+    )
     dash_parser.set_defaults(func=cmd_dashboard)
 
     # simulate

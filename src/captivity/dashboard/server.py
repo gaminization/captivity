@@ -14,7 +14,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Optional
 
 from captivity.dashboard.api import DashboardAPI
-from captivity.dashboard.page import DASHBOARD_HTML
+from captivity.dashboard.page import DASHBOARD_HTML, MANIFEST_JSON, SERVICE_WORKER_JS
 from captivity.utils.logging import get_logger
 
 logger = get_logger("dashboard.server")
@@ -30,21 +30,56 @@ class DashboardHandler(BaseHTTPRequestHandler):
     """
 
     api: DashboardAPI = None  # Set by DashboardServer
+    password: Optional[str] = None  # Set by DashboardServer
 
     def do_GET(self) -> None:
         """Handle GET requests."""
+        # Parse path to handle query strings
+        base_path = self.path.split("?")[0]
+
+        # PWA endpoints (public, required for installability)
+        if base_path == "/manifest.json":
+            self._send_response(200, "application/manifest+json", MANIFEST_JSON)
+            return
+        if base_path == "/sw.js":
+            self._send_response(200, "application/javascript", SERVICE_WORKER_JS)
+            return
+
+        if not self._check_auth():
+            self._send_response(401, "application/json", '{"error": "unauthorized"}')
+            return
+
         # API endpoints
-        if self.path.startswith("/api/"):
+        if base_path.startswith("/api/"):
             self._handle_api()
             return
 
         # Dashboard page
-        if self.path == "/" or self.path == "/index.html":
+        if base_path in ("/", "/index.html"):
             self._send_response(200, "text/html", DASHBOARD_HTML)
             return
 
         # 404
         self._send_response(404, "text/plain", "Not Found")
+
+    def _check_auth(self) -> bool:
+        """Verify authentication token if password is set."""
+        if not self.password:
+            return True
+
+        # Check Authorization header
+        auth_header = self.headers.get("Authorization")
+        if auth_header and auth_header == f"Bearer {self.password}":
+            return True
+
+        # Check query parameter for initial page load
+        if "?" in self.path:
+            query = self.path.split("?", 1)[1]
+            params = dict(q.split("=") for q in query.split("&") if "=" in q)
+            if params.get("token") == self.password:
+                return True
+
+        return False
 
     def _handle_api(self) -> None:
         """Route API requests."""
@@ -84,10 +119,12 @@ class DashboardServer:
         host: str = DEFAULT_HOST,
         port: int = DEFAULT_PORT,
         api: Optional[DashboardAPI] = None,
+        password: Optional[str] = None,
     ) -> None:
         self.host = host
         self.port = port
         self.api = api or DashboardAPI()
+        self.password = password
         self._server: Optional[HTTPServer] = None
         self._thread: Optional[threading.Thread] = None
 
@@ -99,6 +136,7 @@ class DashboardServer:
                      runs in a background thread.
         """
         DashboardHandler.api = self.api
+        DashboardHandler.password = self.password
 
         try:
             self._server = HTTPServer((self.host, self.port), DashboardHandler)

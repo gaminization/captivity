@@ -14,6 +14,8 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Captivity Dashboard</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f1117">
 <style>
   :root {
     --bg: #0f1117;
@@ -235,9 +237,25 @@ function formatHours(s) {
   return (s / 3600).toFixed(1) + 'h';
 }
 
+// Auth token handling
+const urlParams = new URLSearchParams(window.location.search);
+const urlToken = urlParams.get('token');
+if (urlToken) {
+  localStorage.setItem('captivity_token', urlToken);
+  // Clean URL
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
+const token = localStorage.getItem('captivity_token');
+
 async function fetchJSON(url) {
   try {
-    const r = await fetch(url);
+    const headers = {};
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const r = await fetch(url, { headers });
+    if (r.status === 401) {
+      document.getElementById('conn-state').innerHTML = '<span class="status-dot status-error"></span>Unauthorized';
+      return null;
+    }
     return await r.json();
   } catch(e) { return null; }
 }
@@ -290,6 +308,35 @@ async function refresh() {
 
 refresh();
 setInterval(refresh, 5000);
+
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(console.error);
+  });
+}
 </script>
 </body>
 </html>"""
+
+MANIFEST_JSON = """{
+  "name": "Captivity Dashboard",
+  "short_name": "Captivity",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0iIzZjNWNlNyIvPjwvc3ZnPg==",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}"""
+
+SERVICE_WORKER_JS = """// Minimal service worker to satisfy PWA requirements
+self.addEventListener('install', (e) => self.skipWaiting());
+self.addEventListener('activate', (e) => self.clients.claim());
+self.addEventListener('fetch', (e) => {});
+"""
