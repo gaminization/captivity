@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v2.6.0] — 2026-05-05
+
+### Added
+- **WPA Enterprise Detection:** New `wifi.py` module detects 802.1X networks via `nmcli` parsing (`WifiSecurity` enum: `OPEN`, `WPA_PSK`, `WPA_ENTERPRISE`, `UNKNOWN`). Enterprise networks short-circuit `do_login()` to prevent incorrect captive portal login attempts (e.g. eduroam, corporate WPA2-EAP).
+- **Portal Vendor Heuristics:** `classify_portal()` in `fingerprint.py` matches portal HTML against 7 vendor signature patterns (Cisco/Meraki, Aruba/ClearPass, Fortinet, MikroTik, UniFi, CoovaChilli, Pronto). `PortalVendor` enum stored in `NetworkFingerprint.vendor` for diagnostics.
+- **Probe Confidence Scoring:** `ProbeResult.confidence` (0.0–1.0) calculated from multi-endpoint probe agreement. Logged alongside probe results for observability.
+- **WiFi Tests:** New `test_wifi.py` (18 tests) covering nmcli parsing, enterprise detection, and login short-circuit.
+- **Vendor Classification Tests:** 14 tests for `classify_portal()` covering all vendor signatures.
+- **Probe Confidence Tests:** Tests for confidence calculation under unanimous, majority, and mixed probe scenarios.
+
+---
+
 ## [v2.5.0] — 2026-05-05
 
 ### Added

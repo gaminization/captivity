@@ -5,6 +5,8 @@ from unittest.mock import patch, MagicMock
 
 from captivity.core.fingerprint import (
     NetworkFingerprint,
+    PortalVendor,
+    classify_portal,
     extract_portal_domain,
     hash_content,
     get_default_gateway,
@@ -91,6 +93,13 @@ class TestNetworkFingerprint(unittest.TestCase):
         self.assertEqual(fp.ssid, fp2.ssid)
         self.assertEqual(fp.gateway_ip, fp2.gateway_ip)
         self.assertEqual(fp.gateway_mac, fp2.gateway_mac)
+
+    def test_roundtrip_with_vendor(self):
+        fp = NetworkFingerprint(ssid="Net", gateway_ip="10.0.0.1", vendor="cisco")
+        data = fp.to_dict()
+        self.assertEqual(data["vendor"], "cisco")
+        fp2 = NetworkFingerprint.from_dict(data)
+        self.assertEqual(fp2.vendor, "cisco")
 
     def test_repr(self):
         fp = NetworkFingerprint(ssid="Net", gateway_ip="10.0.0.1")
@@ -184,3 +193,58 @@ class TestCaptureFingerprint(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestClassifyPortal(unittest.TestCase):
+    """Test classify_portal() vendor detection."""
+
+    def test_empty_html(self):
+        self.assertEqual(classify_portal(""), PortalVendor.UNKNOWN)
+
+    def test_cisco(self):
+        html = '<html><body><div class="cisco-webauth">Login</div></body></html>'
+        self.assertEqual(classify_portal(html), PortalVendor.CISCO)
+
+    def test_meraki(self):
+        html = "<html><body>Powered by Meraki</body></html>"
+        self.assertEqual(classify_portal(html), PortalVendor.CISCO)
+
+    def test_aruba(self):
+        html = "<html><body>Aruba ClearPass</body></html>"
+        self.assertEqual(classify_portal(html), PortalVendor.ARUBA)
+
+    def test_fortinet(self):
+        html = "<html><body>FortiGate Portal</body></html>"
+        self.assertEqual(classify_portal(html), PortalVendor.FORTINET)
+
+    def test_mikrotik(self):
+        html = '<html><body><link href="mikrotik.css"></body></html>'
+        self.assertEqual(classify_portal(html), PortalVendor.MIKROTIK)
+
+    def test_routeros(self):
+        html = "<html><body>RouterOS login</body></html>"
+        self.assertEqual(classify_portal(html), PortalVendor.MIKROTIK)
+
+    def test_unifi(self):
+        html = "<html><body>UniFi Hotspot Portal</body></html>"
+        self.assertEqual(classify_portal(html), PortalVendor.UNIFI)
+
+    def test_ubiquiti(self):
+        html = "<html><body>Ubiquiti Networks</body></html>"
+        self.assertEqual(classify_portal(html), PortalVendor.UNIFI)
+
+    def test_coovachilli(self):
+        html = "<html><body>CoovaChilli Login</body></html>"
+        self.assertEqual(classify_portal(html), PortalVendor.COOVACHILLI)
+
+    def test_pronto(self):
+        html = "<html><body>ProntoNetworks Portal</body></html>"
+        self.assertEqual(classify_portal(html), PortalVendor.PRONTO)
+
+    def test_generic_form(self):
+        html = '<html><body><form><input name="user"></form></body></html>'
+        self.assertEqual(classify_portal(html), PortalVendor.GENERIC)
+
+    def test_unknown_no_form(self):
+        html = "<html><body>Just some text</body></html>"
+        self.assertEqual(classify_portal(html), PortalVendor.UNKNOWN)

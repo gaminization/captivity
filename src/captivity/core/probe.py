@@ -48,6 +48,7 @@ class ProbeResult:
         portal_html: Snippet of the portal page HTML (first 2000 chars).
         probe_details: Per-endpoint results for debugging.
         detection_method: How the portal was detected (redirect/html/ssl/etc).
+        confidence: Probe agreement score (0.0–1.0). 1.0 = all probes agree.
     """
 
     status: ConnectivityStatus
@@ -56,6 +57,7 @@ class ProbeResult:
     portal_html: Optional[str] = None
     probe_details: list[str] = field(default_factory=list)
     detection_method: str = ""
+    confidence: float = 1.0
 
 
 # --- Probe endpoints ---
@@ -270,6 +272,14 @@ def probe_connectivity_detailed(
         else:
             unavailable_count += 1
 
+    # Calculate confidence from probe agreement
+    total = len(PROBE_ENDPOINTS)
+    if total > 0:
+        max_agreement = max(connected_count, portal_count, unavailable_count)
+        confidence = round(max_agreement / total, 2)
+    else:
+        confidence = 1.0
+
     # Decision logic: Multi-stage validation
     # If ANY probe detects a portal, or if probes conflict (some connected, some unavailable),
     # conservatively assume a portal is doing partial MITM.
@@ -282,6 +292,7 @@ def probe_connectivity_detailed(
             detection_method="multi_stage_conflict"
             if portal_count == 0
             else "http_probe",
+            confidence=confidence,
         )
 
         # Check for captcha in portal HTML
@@ -303,15 +314,18 @@ def probe_connectivity_detailed(
             status=ConnectivityStatus.CONNECTED,
             probe_details=details,
             detection_method="http_probe",
+            confidence=1.0,
         )
     else:
         # All probes failed — try HTTPS probe to distinguish
         # portal (SSL error) vs no network (timeout)
         result = _https_fallback_probe(timeout, details)
+        result.confidence = confidence
 
     logger.info(
-        "PROBE RESULT: %s | PORTAL DETECTED: %s | CAPTCHA DETECTED: %s | METHOD: %s",
+        "PROBE RESULT: %s | CONFIDENCE: %.2f | PORTAL: %s | CAPTCHA: %s | METHOD: %s",
         result.status.value,
+        result.confidence,
         result.status == ConnectivityStatus.PORTAL_DETECTED,
         result.has_captcha,
         result.detection_method,

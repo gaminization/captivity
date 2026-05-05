@@ -1,8 +1,6 @@
 """Tests for win_service module on non-Windows platforms."""
 
-import sys
 import unittest
-from unittest.mock import patch
 
 from captivity.daemon.win_service import CaptivityService, _WIN32_AVAILABLE
 

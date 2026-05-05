@@ -64,6 +64,17 @@ def do_login(
     """
     logger.info("Starting login for network '%s'", network)
 
+    # Early exit: WPA Enterprise (802.1X) networks don't have captive portals
+    from captivity.core.wifi import is_enterprise_network
+
+    if is_enterprise_network(network):
+        logger.warning(
+            "Network '%s' uses WPA Enterprise (802.1X) — "
+            "captive portal login is not applicable",
+            network,
+        )
+        return LoginResult.FAILED
+
     probe_result = probe_connectivity_detailed()
 
     if probe_result.status == ConnectivityStatus.CONNECTED:

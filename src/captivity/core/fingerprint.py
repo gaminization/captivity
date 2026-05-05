@@ -15,11 +15,108 @@ network profiles.
 import hashlib
 import re
 import subprocess
+from enum import Enum
 from typing import Optional
 
 from captivity.utils.logging import get_logger
 
 logger = get_logger("fingerprint")
+
+
+class PortalVendor(Enum):
+    """Known captive portal vendors."""
+
+    CISCO = "cisco"
+    ARUBA = "aruba"
+    FORTINET = "fortinet"
+    MIKROTIK = "mikrotik"
+    UNIFI = "unifi"
+    COOVACHILLI = "coovachilli"
+    PRONTO = "pronto"
+    GENERIC = "generic"
+    UNKNOWN = "unknown"
+
+
+# Vendor signature patterns matched against portal HTML
+_VENDOR_SIGNATURES: list[tuple[PortalVendor, re.Pattern]] = [
+    (
+        PortalVendor.CISCO,
+        re.compile(
+            r"cisco|meraki|web.?auth|aironet|ise\.css",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        PortalVendor.ARUBA,
+        re.compile(
+            r"aruba|clearpass|aruba.?captive|setportal\.js",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        PortalVendor.FORTINET,
+        re.compile(
+            r"fortinet|fortigate|fgt_redirect|fortiguard",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        PortalVendor.MIKROTIK,
+        re.compile(
+            r"mikrotik|routeros|hotspot/login|mikrotik\.css",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        PortalVendor.UNIFI,
+        re.compile(
+            r"ubiquiti|unifi|ubnt\.com|hotspot-portal",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        PortalVendor.COOVACHILLI,
+        re.compile(
+            r"coova|chilli|chillispot|coovachilli",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        PortalVendor.PRONTO,
+        re.compile(
+            r"pronto|prontonetworks|pronto\.net",
+            re.IGNORECASE,
+        ),
+    ),
+]
+
+
+def classify_portal(html: str) -> PortalVendor:
+    """Classify a captive portal vendor from HTML content.
+
+    Matches portal page HTML against known vendor signatures.
+    Used for diagnostics, logging, and profile enrichment.
+    Does NOT override plugin selection (plugins self-select via detect()).
+
+    Args:
+        html: Portal page HTML content.
+
+    Returns:
+        PortalVendor enum value.
+    """
+    if not html:
+        return PortalVendor.UNKNOWN
+
+    for vendor, pattern in _VENDOR_SIGNATURES:
+        if pattern.search(html):
+            logger.info("Portal classified as: %s", vendor.value)
+            return vendor
+
+    # Has HTML form elements but no vendor match
+    if re.search(r"<form|<input", html, re.IGNORECASE):
+        return PortalVendor.GENERIC
+
+    return PortalVendor.UNKNOWN
 
 
 class NetworkFingerprint:
@@ -42,6 +139,7 @@ class NetworkFingerprint:
         portal_domain: str = "",
         redirect_pattern: str = "",
         content_hash: str = "",
+        vendor: str = "",
     ) -> None:
         self.ssid = ssid
         self.gateway_ip = gateway_ip
@@ -49,6 +147,7 @@ class NetworkFingerprint:
         self.portal_domain = portal_domain
         self.redirect_pattern = redirect_pattern
         self.content_hash = content_hash
+        self.vendor = vendor
 
     @property
     def fingerprint_id(self) -> str:
@@ -112,6 +211,7 @@ class NetworkFingerprint:
             "portal_domain": self.portal_domain,
             "redirect_pattern": self.redirect_pattern,
             "content_hash": self.content_hash,
+            "vendor": self.vendor,
         }
 
     @classmethod
@@ -124,6 +224,7 @@ class NetworkFingerprint:
             portal_domain=data.get("portal_domain", ""),
             redirect_pattern=data.get("redirect_pattern", ""),
             content_hash=data.get("content_hash", ""),
+            vendor=data.get("vendor", ""),
         )
 
     def __repr__(self) -> str:

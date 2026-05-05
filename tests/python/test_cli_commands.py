@@ -353,9 +353,7 @@ class TestCmdConfig(unittest.TestCase):
         args = argparse.Namespace(config_action="init")
         self.assertEqual(cmd_config(args), 0)
 
-    @patch(
-        "captivity.core.config.generate_default_config", return_value="/tmp/c.toml"
-    )
+    @patch("captivity.core.config.generate_default_config", return_value="/tmp/c.toml")
     @patch("captivity.core.config.reset_config")
     def test_reset(self, mock_reset, mock_gen):
         args = argparse.Namespace(config_action="reset")

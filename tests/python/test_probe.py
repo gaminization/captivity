@@ -230,6 +230,55 @@ class TestProbeResult(unittest.TestCase):
         self.assertIsNone(r.portal_html)
         self.assertEqual(r.probe_details, [])
         self.assertEqual(r.detection_method, "")
+        self.assertEqual(r.confidence, 1.0)
+
+
+class TestProbeConfidence(unittest.TestCase):
+    """Test confidence scoring in probe results."""
+
+    def test_default_confidence(self):
+        r = ProbeResult(status=ConnectivityStatus.CONNECTED)
+        self.assertEqual(r.confidence, 1.0)
+
+    @patch("captivity.core.probe._probe_single")
+    def test_all_connected_confidence_1(self, mock_single):
+        """All probes agree on CONNECTED → confidence 1.0."""
+        from captivity.core.probe import probe_connectivity_detailed
+
+        mock_single.return_value = (ConnectivityStatus.CONNECTED, None, None)
+        result = probe_connectivity_detailed()
+        self.assertEqual(result.status, ConnectivityStatus.CONNECTED)
+        self.assertEqual(result.confidence, 1.0)
+
+    @patch("captivity.core.probe._probe_single")
+    def test_all_portal_confidence_1(self, mock_single):
+        """All probes agree on PORTAL → confidence 1.0."""
+        from captivity.core.probe import probe_connectivity_detailed
+
+        mock_single.return_value = (
+            ConnectivityStatus.PORTAL_DETECTED,
+            "http://portal.com",
+            None,
+        )
+        result = probe_connectivity_detailed()
+        self.assertEqual(result.status, ConnectivityStatus.PORTAL_DETECTED)
+        self.assertEqual(result.confidence, 1.0)
+
+    @patch("captivity.core.probe._discover_portal_url", return_value=None)
+    @patch("captivity.core.probe._probe_single")
+    def test_mixed_results_low_confidence(self, mock_single, mock_discover):
+        """Mixed probe results → lower confidence."""
+        from captivity.core.probe import probe_connectivity_detailed
+
+        responses = [
+            (ConnectivityStatus.PORTAL_DETECTED, None, "<html>Portal</html>"),
+            (ConnectivityStatus.CONNECTED, None, None),
+            (ConnectivityStatus.CONNECTED, None, None),
+        ]
+        mock_single.side_effect = responses
+        result = probe_connectivity_detailed()
+        self.assertLess(result.confidence, 1.0)
+        self.assertGreater(result.confidence, 0.0)
 
 
 if __name__ == "__main__":
