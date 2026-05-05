@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v2.5.0] — 2026-05-05
+
+### Added
+- **Plugin Lifecycle Hooks:** `CaptivePortalPlugin` base class now provides optional `on_load()`, `on_unload()`, and `validate()` hooks. Plugins that return `False` from `validate()` are automatically skipped during discovery. All hooks are backward-compatible no-ops by default.
+- **User Plugin Directory:** `discover_plugins()` now scans `~/.local/share/captivity/plugins/*.py` for user-authored plugin classes (layer 3, after built-in and entry_point plugins).
+- **Comprehensive CLI Tests:** New `test_cli_commands.py` covering all 14 CLI subcommands and argument parsing (83 tests).
+- **Win Service Tests:** New `test_win_service.py` for non-Windows stub validation.
+- **Plugin Coverage:** Extended `test_plugins.py` with lifecycle hook, validate-skip, generic login, and user directory scanning tests.
+
+### Improved
+- **Coverage Enforcement:** CI threshold raised from 70% → 80%. Current coverage: **80%+** (532 tests).
+
+---
+
 ## [v2.4.0] — 2026-04-29
 
 ### Added

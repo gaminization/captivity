@@ -88,9 +88,7 @@ if _WIN32_AVAILABLE:
             self._thread.start()
 
             # Block until stop event is signaled
-            win32event.WaitForSingleObject(
-                self.stop_event, win32event.INFINITE
-            )
+            win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
 
             # Wait for daemon thread to finish cleanly
             if self._thread and self._thread.is_alive():

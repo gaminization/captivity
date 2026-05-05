@@ -1,12 +1,10 @@
 """Tests for cross-platform network monitor and SSID detection."""
 
 import subprocess
-import sys
 import unittest
 from unittest.mock import patch, MagicMock
 
 from captivity.daemon.network_monitor import (
-    NetworkEvent,
     get_active_wifi_ssid,
     _get_ssid_linux,
     _get_ssid_macos,
@@ -33,9 +31,7 @@ class TestGetActiveWifiSsidDispatch(unittest.TestCase):
         mock_fn.assert_called_once()
 
     @patch("captivity.daemon.network_monitor.sys")
-    @patch(
-        "captivity.daemon.network_monitor._get_ssid_windows", return_value="WinNet"
-    )
+    @patch("captivity.daemon.network_monitor._get_ssid_windows", return_value="WinNet")
     def test_dispatch_windows(self, mock_fn, mock_sys):
         mock_sys.platform = "win32"
         self.assertEqual(get_active_wifi_ssid(), "WinNet")
@@ -48,7 +44,9 @@ class TestGetActiveWifiSsidDispatch(unittest.TestCase):
 
 
 class TestGetSsidLinux(unittest.TestCase):
-    @patch("captivity.daemon.network_monitor.shutil.which", return_value="/usr/bin/nmcli")
+    @patch(
+        "captivity.daemon.network_monitor.shutil.which", return_value="/usr/bin/nmcli"
+    )
     @patch("captivity.daemon.network_monitor.subprocess.run")
     def test_parses_nmcli_output(self, mock_run, mock_which):
         mock_run.return_value = MagicMock(
@@ -60,7 +58,9 @@ class TestGetSsidLinux(unittest.TestCase):
     def test_no_nmcli(self, mock_which):
         self.assertIsNone(_get_ssid_linux())
 
-    @patch("captivity.daemon.network_monitor.shutil.which", return_value="/usr/bin/nmcli")
+    @patch(
+        "captivity.daemon.network_monitor.shutil.which", return_value="/usr/bin/nmcli"
+    )
     @patch(
         "captivity.daemon.network_monitor.subprocess.run",
         side_effect=subprocess.TimeoutExpired(cmd="nmcli", timeout=5),

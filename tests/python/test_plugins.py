@@ -1,7 +1,7 @@
 """Tests for captivity.plugins module."""
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import requests
 
@@ -160,6 +160,148 @@ class TestPluginInterface(unittest.TestCase):
         plugin = TestPlugin()
         self.assertEqual(plugin.priority, 0)
         self.assertGreater(plugin.priority, ProntoPlugin().priority)
+
+
+class TestLifecycleHooks(unittest.TestCase):
+    """Test plugin lifecycle hooks."""
+
+    def _make_plugin_cls(self, validate_result=True):
+        class HookPlugin(CaptivePortalPlugin):
+            loaded = False
+            unloaded = False
+
+            @property
+            def name(self):
+                return "hook-test"
+
+            def detect(self, response):
+                return True
+
+            def login(self, session, portal_url, username, password):
+                return True
+
+            def on_load(self):
+                type(self).loaded = True
+
+            def on_unload(self):
+                type(self).unloaded = True
+
+            def validate(self):
+                return validate_result
+
+        return HookPlugin
+
+    def test_on_load_called(self):
+        cls = self._make_plugin_cls()
+        plugin = cls()
+        plugin.on_load()
+        self.assertTrue(cls.loaded)
+
+    def test_on_unload_called(self):
+        cls = self._make_plugin_cls()
+        plugin = cls()
+        plugin.on_unload()
+        self.assertTrue(cls.unloaded)
+
+    def test_validate_default_true(self):
+        class MinPlugin(CaptivePortalPlugin):
+            @property
+            def name(self):
+                return "min"
+
+            def detect(self, response):
+                return True
+
+            def login(self, session, portal_url, username, password):
+                return True
+
+        self.assertTrue(MinPlugin().validate())
+
+    def test_validate_false(self):
+        cls = self._make_plugin_cls(validate_result=False)
+        self.assertFalse(cls().validate())
+
+
+class TestDiscoverWithLifecycle(unittest.TestCase):
+    """Test that discover_plugins integrates lifecycle hooks."""
+
+    def test_discover_calls_on_load(self):
+        plugins = discover_plugins()
+        self.assertGreater(len(plugins), 0)
+
+    @patch.object(ProntoPlugin, "validate", return_value=False)
+    def test_invalid_plugin_skipped(self, mock_validate):
+        plugins = discover_plugins()
+        names = [p.name for p in plugins]
+        self.assertNotIn("Pronto Networks", names)
+
+
+class TestGenericPluginLogin(unittest.TestCase):
+    """Test GenericPlugin.login() paths."""
+
+    def setUp(self):
+        self.plugin = GenericPlugin()
+
+    @patch("captivity.plugins.generic.parse_portal_page", return_value=None)
+    def test_login_no_form(self, mock_parse):
+        result = self.plugin.login(MagicMock(), "http://p.com", "u", "p")
+        self.assertFalse(result)
+
+    @patch("captivity.plugins.generic.parse_portal_page")
+    def test_login_missing_fields(self, mock_parse):
+        form = MagicMock()
+        form.username_field = None
+        form.password_field = None
+        mock_parse.return_value = form
+        result = self.plugin.login(MagicMock(), "http://p.com", "u", "p")
+        self.assertFalse(result)
+
+    @patch("captivity.plugins.generic.parse_portal_page")
+    def test_login_success(self, mock_parse):
+        form = MagicMock()
+        form.username_field = "user"
+        form.password_field = "pass"
+        form.action = "http://p.com/login"
+        form.build_payload.return_value = {"user": "u", "pass": "p"}
+        mock_parse.return_value = form
+        session = MagicMock()
+        session.post.return_value = MagicMock(status_code=200)
+        result = self.plugin.login(session, "http://p.com", "u", "p")
+        self.assertTrue(result)
+
+    @patch("captivity.plugins.generic.parse_portal_page")
+    def test_login_request_error(self, mock_parse):
+        import requests as _req
+
+        form = MagicMock()
+        form.username_field = "u"
+        form.password_field = "p"
+        form.action = "http://p.com/login"
+        form.build_payload.return_value = {}
+        mock_parse.return_value = form
+        session = MagicMock()
+        session.post.side_effect = _req.exceptions.ConnectionError()
+        result = self.plugin.login(session, "http://p.com", "u", "p")
+        self.assertFalse(result)
+
+
+class TestUserPluginDirectory(unittest.TestCase):
+    """Test user plugin directory scanning."""
+
+    def test_no_dir_returns_empty(self):
+        from captivity.plugins.loader import _load_user_plugins
+
+        with patch("captivity.plugins.loader._user_plugin_dir") as mock_dir:
+            mock_path = MagicMock()
+            mock_path.is_dir.return_value = False
+            mock_dir.return_value = mock_path
+            self.assertEqual(_load_user_plugins(), [])
+
+    def test_user_plugin_dir_path(self):
+        from captivity.plugins.loader import _user_plugin_dir
+
+        path = _user_plugin_dir()
+        self.assertTrue(str(path).endswith("captivity/plugins"))
 
 
 if __name__ == "__main__":

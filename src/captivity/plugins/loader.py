@@ -82,7 +82,9 @@ def _load_user_plugins() -> list[CaptivePortalPlugin]:
                 ):
                     plugin = attr()
                     plugins.append(plugin)
-                    logger.info("Loaded user plugin: %s from %s", plugin.name, py_file.name)
+                    logger.info(
+                        "Loaded user plugin: %s from %s", plugin.name, py_file.name
+                    )
 
         except Exception as exc:
             logger.warning("Failed to load user plugin %s: %s", py_file.name, exc)
