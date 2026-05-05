@@ -42,6 +42,7 @@ impl Default for MonitorConfig {
 /// Network state monitor that tracks connectivity changes.
 pub struct NetworkMonitor {
     config: MonitorConfig,
+    client: reqwest::Client,
     last_status: ConnectivityStatus,
     last_probe: Option<Instant>,
     running: bool,
@@ -50,8 +51,16 @@ pub struct NetworkMonitor {
 impl NetworkMonitor {
     /// Create a new monitor with the given configuration.
     pub fn new(config: MonitorConfig) -> Self {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_millis(config.probe.timeout_ms))
+            .user_agent(&config.probe.user_agent)
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap_or_default();
+
         Self {
             config,
+            client,
             last_status: ConnectivityStatus::NetworkUnavailable,
             last_probe: None,
             running: false,
@@ -59,8 +68,8 @@ impl NetworkMonitor {
     }
 
     /// Run a single probe cycle and return any state-change events.
-    pub fn poll(&mut self) -> Vec<MonitorEvent> {
-        let result = probe_connectivity(&self.config.probe);
+    pub async fn poll(&mut self) -> Vec<MonitorEvent> {
+        let result = probe_connectivity(&self.client, &self.config.probe).await;
         let mut events = vec![MonitorEvent::ProbeComplete(result.clone())];
 
         // Detect state transitions

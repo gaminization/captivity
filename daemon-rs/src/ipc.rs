@@ -12,12 +12,11 @@
 use crate::monitor::MonitorEvent;
 use crate::probe::ConnectivityStatus;
 use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader, Write};
-use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::{UnixListener, UnixStream};
+use tokio::sync::{mpsc, Mutex, RwLock};
 
 /// IPC command from client.
 #[derive(Debug, Deserialize)]
@@ -101,6 +100,7 @@ pub struct IpcServer {
     listener: Option<UnixListener>,
     command_tx: mpsc::Sender<IpcCommand>,
     subscribers: Arc<Mutex<Vec<UnixStream>>>,
+    current_status: Arc<RwLock<ConnectivityStatus>>,
 }
 
 impl IpcServer {
@@ -108,6 +108,7 @@ impl IpcServer {
     pub fn new(
         socket_path: PathBuf,
         command_tx: mpsc::Sender<IpcCommand>,
+        current_status: Arc<RwLock<ConnectivityStatus>>,
     ) -> std::io::Result<Self> {
         // Remove stale socket
         if socket_path.exists() {
@@ -120,7 +121,6 @@ impl IpcServer {
         }
 
         let listener = UnixListener::bind(&socket_path)?;
-        listener.set_nonblocking(true)?;
 
         eprintln!("[ipc] Listening on {}", socket_path.display());
 
@@ -129,103 +129,113 @@ impl IpcServer {
             listener: Some(listener),
             command_tx,
             subscribers: Arc::new(Mutex::new(Vec::new())),
+            current_status,
         })
     }
 
-    /// Accept pending connections and process commands.
-    /// Returns any commands received from clients.
-    pub fn poll(&self, current_status: &ConnectivityStatus) -> Vec<IpcCommand> {
-        let mut commands = Vec::new();
-
-        if let Some(ref listener) = self.listener {
-            // Accept new connections
+    /// Accept pending connections and process commands asynchronously.
+    pub async fn run(&mut self) {
+        if let Some(listener) = self.listener.take() {
             loop {
-                match listener.accept() {
+                match listener.accept().await {
                     Ok((stream, _addr)) => {
-                        let cmds = self.handle_client(stream, current_status);
-                        commands.extend(cmds);
+                        let cmd_tx = self.command_tx.clone();
+                        let status = self.current_status.clone();
+                        let subs = self.subscribers.clone();
+                        
+                        tokio::spawn(async move {
+                            Self::handle_client(stream, status, cmd_tx, subs).await;
+                        });
                     }
-                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
                     Err(e) => {
                         eprintln!("[ipc] Accept error: {}", e);
-                        break;
                     }
                 }
             }
         }
-
-        commands
     }
 
     /// Handle a single client connection.
-    fn handle_client(
-        &self,
-        stream: UnixStream,
-        current_status: &ConnectivityStatus,
-    ) -> Vec<IpcCommand> {
-        let mut commands = Vec::new();
-
-        // Set a short read timeout for non-blocking behavior
-        let _ = stream.set_read_timeout(Some(std::time::Duration::from_millis(100)));
-
-        let mut reader = BufReader::new(stream.try_clone().unwrap_or_else(|_| {
-            // Fallback — this shouldn't happen with Unix sockets
-            panic!("Failed to clone Unix stream");
-        }));
-        let mut writer = stream;
-
+    async fn handle_client(
+        mut stream: UnixStream,
+        current_status: Arc<RwLock<ConnectivityStatus>>,
+        command_tx: mpsc::Sender<IpcCommand>,
+        subscribers: Arc<Mutex<Vec<UnixStream>>>,
+    ) {
+        let (reader, mut writer) = stream.split();
+        let mut reader = BufReader::new(reader);
         let mut line = String::new();
-        match reader.read_line(&mut line) {
+
+        match reader.read_line(&mut line).await {
             Ok(0) => {} // EOF
             Ok(_) => {
                 let line = line.trim();
                 match serde_json::from_str::<IpcCommand>(line) {
                     Ok(cmd) => {
+                        let is_subscribe = matches!(cmd, IpcCommand::Subscribe);
+                        let is_probe = matches!(cmd, IpcCommand::Probe);
+                        let is_stop = matches!(cmd, IpcCommand::Stop);
+                        
                         let response = match &cmd {
-                            IpcCommand::Status => IpcResponse::status(current_status),
+                            IpcCommand::Status => {
+                                let status = current_status.read().await;
+                                IpcResponse::status(&*status)
+                            }
                             IpcCommand::Probe => IpcResponse::ok("probe_requested"),
                             IpcCommand::Stop => IpcResponse::ok("stopping"),
                             IpcCommand::Subscribe => {
-                                // Add to subscribers for event streaming
-                                if let Ok(clone) = writer.try_clone() {
-                                    if let Ok(mut subs) = self.subscribers.lock() {
-                                        subs.push(clone);
-                                    }
-                                }
                                 IpcResponse::ok("subscribed")
                             }
                         };
 
                         if let Ok(json) = serde_json::to_string(&response) {
-                            let _ = writeln!(writer, "{}", json);
+                            let _ = writer.write_all(format!("{}\n", json).as_bytes()).await;
                         }
 
-                        commands.push(cmd);
+                        // Forward command to main loop
+                        if is_probe || is_stop {
+                            let _ = command_tx.send(cmd).await;
+                        }
+
+                        if is_subscribe {
+                            // Reassemble stream and add to subscribers
+                            let mut stream = reader.into_inner().unsplit(writer);
+                            let mut subs = subscribers.lock().await;
+                            subs.push(stream);
+                        }
                     }
                     Err(e) => {
                         let response = IpcResponse::error(&format!("Invalid command: {}", e));
                         if let Ok(json) = serde_json::to_string(&response) {
-                            let _ = writeln!(writer, "{}", json);
+                            let _ = writer.write_all(format!("{}\n", json).as_bytes()).await;
                         }
                     }
                 }
             }
             Err(_) => {} // Timeout or error
         }
-
-        commands
     }
 
     /// Broadcast an event to all subscribers.
-    pub fn broadcast_event(&self, event: &MonitorEvent) {
-        if let Ok(mut subscribers) = self.subscribers.lock() {
-            let response = IpcResponse::with_event(event.clone());
-            if let Ok(json) = serde_json::to_string(&response) {
-                subscribers.retain(|stream| {
-                    let mut writer = stream;
-                    writeln!(writer, "{}", json).is_ok()
-                });
+    pub async fn broadcast_event(&self, event: &MonitorEvent) {
+        let mut subscribers = self.subscribers.lock().await;
+        if subscribers.is_empty() {
+            return;
+        }
+
+        let response = IpcResponse::with_event(event.clone());
+        if let Ok(json) = serde_json::to_string(&response) {
+            let message = format!("{}\n", json);
+            let bytes = message.as_bytes();
+            
+            // Keep streams that successfully write
+            let mut keep = Vec::new();
+            for mut stream in subscribers.drain(..) {
+                if stream.write_all(bytes).await.is_ok() {
+                    keep.push(stream);
+                }
             }
+            *subscribers = keep;
         }
     }
 

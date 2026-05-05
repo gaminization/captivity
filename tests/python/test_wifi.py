@@ -1,6 +1,5 @@
 """Tests for captivity.core.wifi — WPA Enterprise detection."""
 
-import sys
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -26,13 +25,9 @@ class TestClassifySecurity(unittest.TestCase):
         self.assertEqual(_classify_security("WEP"), WifiSecurity.WPA_PSK)
 
     def test_enterprise(self):
-        self.assertEqual(
-            _classify_security("WPA2 802.1X"), WifiSecurity.WPA_ENTERPRISE
-        )
+        self.assertEqual(_classify_security("WPA2 802.1X"), WifiSecurity.WPA_ENTERPRISE)
         self.assertEqual(_classify_security("802.1X"), WifiSecurity.WPA_ENTERPRISE)
-        self.assertEqual(
-            _classify_security("WPA2-EAP"), WifiSecurity.WPA_ENTERPRISE
-        )
+        self.assertEqual(_classify_security("WPA2-EAP"), WifiSecurity.WPA_ENTERPRISE)
         self.assertEqual(
             _classify_security("WPA Enterprise"), WifiSecurity.WPA_ENTERPRISE
         )
@@ -102,9 +97,7 @@ class TestGetConnectionSecurity(unittest.TestCase):
         result = MagicMock()
         result.stdout = "802-11-wireless-security.key-mgmt:wpa-eap\n"
         mock_run.return_value = result
-        self.assertEqual(
-            _get_connection_security("MyNet"), WifiSecurity.WPA_ENTERPRISE
-        )
+        self.assertEqual(_get_connection_security("MyNet"), WifiSecurity.WPA_ENTERPRISE)
 
     @patch("captivity.core.wifi.subprocess.run")
     def test_psk(self, mock_run):

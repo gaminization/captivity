@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v2.7.0] — 2026-05-05
+
+### Added
+- **Async Rust Daemon:** Migrated the Rust daemon (`captivity-daemon`) to a fully asynchronous architecture using the `tokio` runtime.
+- **Async Networking:** Replaced synchronous HTTP probes (`ureq`) with non-blocking async probes (`reqwest`).
+- **Concurrent IPC:** Rewrote the Unix domain socket IPC server to support truly concurrent connections with `tokio::net::UnixListener` and `tokio::spawn` tasks.
+- **Resource Efficiency:** Eliminated manual blocking loop `sleep` checks in favor of `tokio::select!` for periodic polling and event handling.
+
+---
+
 ## [v2.6.0] — 2026-05-05
 
 ### Added

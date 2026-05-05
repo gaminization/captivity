@@ -48,19 +48,13 @@ impl Default for ProbeConfig {
 /// Sends a lightweight GET request and interprets the response
 /// to determine if the device has internet access or is behind
 /// a captive portal.
-pub fn probe_connectivity(config: &ProbeConfig) -> ProbeResult {
+pub async fn probe_connectivity(client: &reqwest::Client, config: &ProbeConfig) -> ProbeResult {
     let start = std::time::Instant::now();
 
-    let agent = ureq::AgentBuilder::new()
-        .timeout(Duration::from_millis(config.timeout_ms))
-        .redirects(0)
-        .user_agent(&config.user_agent)
-        .build();
-
-    match agent.get(&config.url).call() {
+    match client.get(&config.url).send().await {
         Ok(response) => {
             let latency = start.elapsed().as_millis() as u64;
-            let status_code = response.status();
+            let status_code = response.status().as_u16();
 
             if status_code == 204 {
                 ProbeResult {
@@ -70,7 +64,9 @@ pub fn probe_connectivity(config: &ProbeConfig) -> ProbeResult {
                 }
             } else if [301, 302, 303, 307, 308].contains(&status_code) {
                 let redirect = response
-                    .header("Location")
+                    .headers()
+                    .get(reqwest::header::LOCATION)
+                    .and_then(|v| v.to_str().ok())
                     .map(|s| s.to_string());
                 ProbeResult {
                     status: ConnectivityStatus::PortalDetected,
@@ -86,31 +82,29 @@ pub fn probe_connectivity(config: &ProbeConfig) -> ProbeResult {
                 }
             }
         }
-        Err(ureq::Error::Status(code, response)) => {
+        Err(e) => {
             let latency = start.elapsed().as_millis() as u64;
-            if [301, 302, 303, 307, 308].contains(&code) {
-                let redirect = response
-                    .header("Location")
-                    .map(|s| s.to_string());
-                ProbeResult {
-                    status: ConnectivityStatus::PortalDetected,
-                    redirect_url: redirect,
-                    latency_ms: latency,
+            if let Some(status) = e.status() {
+                let code = status.as_u16();
+                if [301, 302, 303, 307, 308].contains(&code) {
+                    ProbeResult {
+                        status: ConnectivityStatus::PortalDetected,
+                        redirect_url: None, // Cannot easily get redirect URL from reqwest error
+                        latency_ms: latency,
+                    }
+                } else {
+                    ProbeResult {
+                        status: ConnectivityStatus::PortalDetected,
+                        redirect_url: None,
+                        latency_ms: latency,
+                    }
                 }
             } else {
                 ProbeResult {
-                    status: ConnectivityStatus::PortalDetected,
+                    status: ConnectivityStatus::NetworkUnavailable,
                     redirect_url: None,
                     latency_ms: latency,
                 }
-            }
-        }
-        Err(_) => {
-            let latency = start.elapsed().as_millis() as u64;
-            ProbeResult {
-                status: ConnectivityStatus::NetworkUnavailable,
-                redirect_url: None,
-                latency_ms: latency,
             }
         }
     }

@@ -19,9 +19,11 @@ mod probe;
 
 use ipc::{IpcCommand, IpcServer};
 use monitor::{MonitorConfig, MonitorEvent, NetworkMonitor};
-use probe::ProbeConfig;
-use std::sync::mpsc;
+use probe::{ProbeConfig, ConnectivityStatus};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::{mpsc, RwLock};
+use tokio::time::interval;
 
 /// Parse command-line arguments (minimal, no external deps).
 struct Args {
@@ -88,7 +90,8 @@ impl Args {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
 
     eprintln!("captivity-daemon v2.0.0 starting...");
@@ -105,12 +108,14 @@ fn main() {
     // Build monitor config
     let mut monitor_config = MonitorConfig::default();
     monitor_config.probe = probe_config;
-    if let Some(secs) = args.interval_secs {
-        monitor_config.poll_interval = Duration::from_secs(secs);
-    }
+    let poll_interval = args.interval_secs.map(Duration::from_secs).unwrap_or(monitor_config.poll_interval);
+    monitor_config.poll_interval = poll_interval;
+
+    // Shared status for IPC
+    let current_status = Arc::new(RwLock::new(ConnectivityStatus::NetworkUnavailable));
 
     // IPC channel for commands from clients
-    let (cmd_tx, cmd_rx) = mpsc::channel::<IpcCommand>();
+    let (cmd_tx, mut cmd_rx) = mpsc::channel::<IpcCommand>(32);
 
     // Socket path
     let socket_path = args
@@ -119,7 +124,7 @@ fn main() {
         .unwrap_or_else(ipc::default_socket_path);
 
     // Start IPC server
-    let ipc_server = match IpcServer::new(socket_path, cmd_tx) {
+    let mut ipc_server = match IpcServer::new(socket_path, cmd_tx, current_status.clone()) {
         Ok(server) => server,
         Err(e) => {
             eprintln!("[error] Failed to start IPC server: {}", e);
@@ -129,63 +134,87 @@ fn main() {
 
     eprintln!("[daemon] IPC socket: {}", ipc_server.socket_path().display());
 
+    // Spawn IPC background listener
+    let ipc_server_arc = Arc::new(tokio::sync::RwLock::new(ipc_server));
+    let ipc_clone = ipc_server_arc.clone();
+    tokio::spawn(async move {
+        let mut server = ipc_clone.write().await;
+        server.run().await;
+    });
+
     // Create monitor
     let mut monitor = NetworkMonitor::new(monitor_config);
     monitor.set_running(true);
 
     eprintln!("[daemon] Monitor started, entering event loop...");
 
-    // Main event loop
-    let poll_sleep = Duration::from_millis(500);
+    let mut poll_timer = interval(poll_interval);
+    // Tick once immediately to align start time, but do the actual first poll manually
+    poll_timer.tick().await;
+
+    // Perform initial poll
+    let events = monitor.poll().await;
+    for event in &events {
+        eprintln!("[daemon] Event: {:?}", event);
+        ipc_server_arc.read().await.broadcast_event(event).await;
+    }
+    {
+        let mut status = current_status.write().await;
+        *status = monitor.status().clone();
+    }
 
     while monitor.is_running() {
-        // Check for IPC commands
-        let commands = ipc_server.poll(monitor.status());
-        for cmd in commands {
-            match cmd {
-                IpcCommand::Stop => {
-                    eprintln!("[daemon] Stop command received");
-                    monitor.set_running(false);
-                }
-                IpcCommand::Probe => {
-                    eprintln!("[daemon] Manual probe requested");
-                    let events = monitor.poll();
+        tokio::select! {
+            _ = poll_timer.tick() => {
+                if monitor.is_running() {
+                    let events = monitor.poll().await;
+                    
+                    // Update shared status
+                    {
+                        let mut status = current_status.write().await;
+                        *status = monitor.status().clone();
+                    }
+
+                    // Broadcast
+                    let server = ipc_server_arc.read().await;
                     for event in &events {
-                        eprintln!("[daemon] Event: {:?}", event);
-                        ipc_server.broadcast_event(event);
+                        match event {
+                            MonitorEvent::ProbeComplete(_) => {}
+                            _ => eprintln!("[daemon] Event: {:?}", event),
+                        }
+                        server.broadcast_event(event).await;
                     }
                 }
-                IpcCommand::Status | IpcCommand::Subscribe => {
-                    // Handled in IPC poll
+            }
+            Some(cmd) = cmd_rx.recv() => {
+                match cmd {
+                    IpcCommand::Stop => {
+                        eprintln!("[daemon] Stop command received");
+                        monitor.set_running(false);
+                    }
+                    IpcCommand::Probe => {
+                        eprintln!("[daemon] Manual probe requested");
+                        let events = monitor.poll().await;
+                        
+                        // Update shared status
+                        {
+                            let mut status = current_status.write().await;
+                            *status = monitor.status().clone();
+                        }
+
+                        let server = ipc_server_arc.read().await;
+                        for event in &events {
+                            eprintln!("[daemon] Event: {:?}", event);
+                            server.broadcast_event(event).await;
+                        }
+                        
+                        // Reset timer since we just probed
+                        poll_timer.reset();
+                    }
+                    _ => {}
                 }
             }
         }
-
-        // Check buffered channel commands
-        while let Ok(cmd) = cmd_rx.try_recv() {
-            if matches!(cmd, IpcCommand::Stop) {
-                monitor.set_running(false);
-            }
-        }
-
-        // Periodic probe
-        if monitor.is_running() && monitor.should_poll() {
-            let events = monitor.poll();
-            for event in &events {
-                match event {
-                    MonitorEvent::ProbeComplete(_) => {
-                        // Quiet for routine probes
-                    }
-                    _ => {
-                        eprintln!("[daemon] Event: {:?}", event);
-                    }
-                }
-                ipc_server.broadcast_event(event);
-            }
-        }
-
-        // Sleep between polls
-        std::thread::sleep(poll_sleep);
     }
 
     eprintln!("[daemon] Shutting down...");
