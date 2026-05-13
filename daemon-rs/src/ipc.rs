@@ -12,10 +12,9 @@
 use crate::monitor::MonitorEvent;
 use crate::probe::ConnectivityStatus;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::{UnixListener, UnixStream};
+use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, Mutex, RwLock};
 
 /// IPC command from client.
@@ -87,45 +86,34 @@ impl IpcResponse {
     }
 }
 
-/// Default socket path.
-pub fn default_socket_path() -> PathBuf {
-    let runtime_dir = std::env::var("XDG_RUNTIME_DIR")
-        .unwrap_or_else(|_| "/tmp".to_string());
-    PathBuf::from(runtime_dir).join("captivity-daemon.sock")
+/// Default IPC port.
+pub fn default_port() -> u16 {
+    8788
 }
 
-/// IPC server managing Unix socket connections.
+/// IPC server managing TCP connections.
 pub struct IpcServer {
-    socket_path: PathBuf,
-    listener: Option<UnixListener>,
+    port: u16,
+    listener: Option<TcpListener>,
     command_tx: mpsc::Sender<IpcCommand>,
-    subscribers: Arc<Mutex<Vec<UnixStream>>>,
+    subscribers: Arc<Mutex<Vec<TcpStream>>>,
     current_status: Arc<RwLock<ConnectivityStatus>>,
 }
 
 impl IpcServer {
     /// Create a new IPC server.
-    pub fn new(
-        socket_path: PathBuf,
+    pub async fn new(
+        port: u16,
         command_tx: mpsc::Sender<IpcCommand>,
         current_status: Arc<RwLock<ConnectivityStatus>>,
     ) -> std::io::Result<Self> {
-        // Remove stale socket
-        if socket_path.exists() {
-            std::fs::remove_file(&socket_path)?;
-        }
+        let addr = format!("127.0.0.1:{}", port);
+        let listener = TcpListener::bind(&addr).await?;
 
-        // Create parent directory
-        if let Some(parent) = socket_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        let listener = UnixListener::bind(&socket_path)?;
-
-        eprintln!("[ipc] Listening on {}", socket_path.display());
+        eprintln!("[ipc] Listening on {}", addr);
 
         Ok(Self {
-            socket_path,
+            port,
             listener: Some(listener),
             command_tx,
             subscribers: Arc::new(Mutex::new(Vec::new())),
@@ -157,10 +145,10 @@ impl IpcServer {
 
     /// Handle a single client connection.
     async fn handle_client(
-        mut stream: UnixStream,
+        mut stream: TcpStream,
         current_status: Arc<RwLock<ConnectivityStatus>>,
         command_tx: mpsc::Sender<IpcCommand>,
-        subscribers: Arc<Mutex<Vec<UnixStream>>>,
+        subscribers: Arc<Mutex<Vec<TcpStream>>>,
     ) {
         let (reader, mut writer) = stream.split();
         let mut reader = BufReader::new(reader);
@@ -239,16 +227,9 @@ impl IpcServer {
         }
     }
 
-    /// Get the socket path.
-    pub fn socket_path(&self) -> &Path {
-        &self.socket_path
-    }
-}
-
-impl Drop for IpcServer {
-    fn drop(&mut self) {
-        // Clean up socket file
-        let _ = std::fs::remove_file(&self.socket_path);
+    /// Get the bound port.
+    pub fn port(&self) -> u16 {
+        self.port
     }
 }
 
@@ -257,9 +238,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_default_socket_path() {
-        let path = default_socket_path();
-        assert!(path.to_string_lossy().contains("captivity-daemon.sock"));
+    fn test_default_port() {
+        assert_eq!(default_port(), 8788);
     }
 
     #[test]

@@ -1,0 +1,26 @@
+#!/bin/bash
+# /etc/NetworkManager/dispatcher.d/99-captivity
+#
+# NetworkManager dispatcher script for Captivity.
+#
+# Reacts to real NM lifecycle events so that Captivity receives a fresh
+# probe even when systemd boot ordering is satisfied too early.
+#
+# Install:
+#   sudo cp systemd/99-captivity-dispatcher /etc/NetworkManager/dispatcher.d/99-captivity
+#   sudo chmod 755 /etc/NetworkManager/dispatcher.d/99-captivity
+
+INTERFACE="$1"
+STATUS="$2"
+
+logger "[captivity-dispatcher] DISPATCHER_EVENT interface=$INTERFACE status=$STATUS"
+
+case "$STATUS" in
+    up|connectivity-change|dhcp4-change|dhcp6-change)
+        logger "[captivity-dispatcher] Triggering captivity restart for status=$STATUS"
+        systemctl restart captivity
+        ;;
+    *)
+        # No action needed for disconnect, pre-up, etc.
+        ;;
+esac

@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/gaminization/captivity/releases"><img src="https://img.shields.io/badge/version-2.8.0-blue?style=flat-square" alt="Version"></a>
+  <a href="https://github.com/gaminization/captivity/releases"><img src="https://img.shields.io/badge/version-3.0.0-blue?style=flat-square" alt="Version"></a>
   <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/gaminization/captivity/ci.yml?branch=main&style=flat-square&label=tests" alt="CI"></a>
   <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-tested-green?style=flat-square" alt="Coverage"></a>
   <a href="https://github.com/gaminization/captivity/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-orange?style=flat-square" alt="License"></a>
@@ -350,8 +350,8 @@ Captivity fingerprints portal pages and stores successful login strategies per n
                     └──────────┬──────────────────────────────────┘
                                │
                     ┌──────────▼──────────┐
-                    │   Rust Daemon (v2)  │
-                    │   probe · monitor   │◀── Unix Socket IPC
+                    │   Rust Daemon (v3)  │
+                    │   probe · monitor   │◀── TCP Socket IPC (127.0.0.1:8788)
                     │   ipc · events      │
                     └─────────────────────┘
 ```
@@ -360,7 +360,7 @@ Captivity fingerprints portal pages and stores successful login strategies per n
 
 **Rust** handles: low-level networking, high-frequency probing, event dispatch.
 
-Communication via Unix domain socket with newline-delimited JSON.
+Communication via local TCP socket with newline-delimited JSON.
 
 ---
 
@@ -383,11 +383,11 @@ The Rust daemon targets embedded/IoT scenarios where memory budgets are strict.
 
 ## Roadmap
 
-- [ ] Rust daemon as default network core
-- [ ] Plugin ecosystem with registry API
-- [ ] macOS and Windows support
-- [ ] WPA Enterprise / 802.1X detection
-- [ ] Mobile companion (Android)
+- [x] Rust daemon as default network core
+- [x] Plugin ecosystem with registry API
+- [x] macOS and Windows support
+- [x] WPA Enterprise / 802.1X detection
+- [x] Mobile companion (Android)
 
 See [timeline.md](timeline.md) for the full version history.
 

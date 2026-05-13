@@ -96,11 +96,10 @@ def cmd_daemon(args: argparse.Namespace) -> int:
     runner = DaemonRunner(
         network=args.network,
         portal_url=args.portal,
-        interval=args.interval,
     )
 
     if args.once:
-        runner.run_once()
+        runner._run_probe()
     else:
         runner.run()
 
@@ -595,10 +594,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Suppress output except errors",
     )
 
+    # Global parser for common flags like --verbose
+    global_parser = argparse.ArgumentParser(add_help=False)
+    global_parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable debug output"
+    )
+    global_parser.add_argument(
+        "-q", "--quiet", action="store_true", help="Suppress output except errors"
+    )
+
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # login
-    login_parser = subparsers.add_parser("login", help="Login to a captive portal")
+    login_parser = subparsers.add_parser("login", help="Login to a captive portal", parents=[global_parser])
     login_parser.add_argument("--network", "-n", required=True, help="Network name")
     login_parser.add_argument("--portal", "-p", default=None, help="Portal URL")
     login_parser.add_argument("--dry-run", action="store_true", help="Simulate login")
@@ -613,12 +621,9 @@ def build_parser() -> argparse.ArgumentParser:
     status_parser.set_defaults(func=cmd_status)
 
     # daemon
-    daemon_parser = subparsers.add_parser("daemon", help="Run reconnect daemon")
+    daemon_parser = subparsers.add_parser("daemon", help="Run reconnect daemon", parents=[global_parser])
     daemon_parser.add_argument("--network", "-n", default=None, help="Network name")
     daemon_parser.add_argument("--portal", "-p", default=None, help="Portal URL")
-    daemon_parser.add_argument(
-        "--interval", "-i", type=int, default=30, help="Probe interval (seconds)"
-    )
     daemon_parser.add_argument("--once", action="store_true", help="Run a single probe")
     daemon_parser.set_defaults(func=cmd_daemon)
 

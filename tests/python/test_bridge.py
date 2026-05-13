@@ -11,28 +11,25 @@ from unittest.mock import patch
 
 from captivity.daemon.bridge import (
     DaemonBridge,
-    _default_socket_path,
+    _default_port,
     _find_daemon_binary,
     start_daemon,
 )
 from captivity.daemon.events import Event
 
 
-class TestDefaultSocketPath(unittest.TestCase):
-    """Test default socket path resolution."""
+class TestDefaultPort(unittest.TestCase):
+    """Test default port resolution."""
 
-    def test_uses_xdg_runtime_dir(self):
-        with patch.dict(os.environ, {"XDG_RUNTIME_DIR": "/run/user/1000"}):
-            path = _default_socket_path()
-            self.assertIn("captivity-daemon.sock", path)
-            self.assertIn("/run/user/1000", path)
+    def test_uses_env_var(self):
+        with patch.dict(os.environ, {"CAPTIVITY_PORT": "9999"}):
+            port = _default_port()
+            self.assertEqual(port, 9999)
 
-    def test_falls_back_to_tmp(self):
+    def test_falls_back_to_default(self):
         with patch.dict(os.environ, {}, clear=True):
-            # Remove XDG_RUNTIME_DIR if present
-            os.environ.pop("XDG_RUNTIME_DIR", None)
-            path = _default_socket_path()
-            self.assertIn("captivity-daemon.sock", path)
+            port = _default_port()
+            self.assertEqual(port, 8788)
 
 
 class TestFindDaemonBinary(unittest.TestCase):
@@ -49,12 +46,11 @@ class TestDaemonBridge(unittest.TestCase):
     """Test DaemonBridge with mock socket server."""
 
     def setUp(self):
-        self.tmpdir = tempfile.mkdtemp()
-        self.socket_path = os.path.join(self.tmpdir, "test.sock")
-        self.bridge = DaemonBridge(socket_path=self.socket_path)
+        self.port = 18788
+        self.bridge = DaemonBridge(port=self.port)
 
-    def test_socket_path(self):
-        self.assertEqual(self.bridge.socket_path, self.socket_path)
+    def test_port(self):
+        self.assertEqual(self.bridge.port, self.port)
 
     def test_not_connected_initially(self):
         self.assertFalse(self.bridge.is_connected)
@@ -78,32 +74,30 @@ class TestDaemonBridge(unittest.TestCase):
 
 
 class TestDaemonBridgeWithServer(unittest.TestCase):
-    """Test DaemonBridge with a mock Unix socket server."""
+    """Test DaemonBridge with a mock TCP socket server."""
 
     def setUp(self):
-        self.tmpdir = tempfile.mkdtemp()
-        self.socket_path = os.path.join(self.tmpdir, "test.sock")
         self.server_running = True
+        self.server_ready = threading.Event()
         self._start_mock_server()
-        time.sleep(0.1)  # Let server start
-        self.bridge = DaemonBridge(socket_path=self.socket_path)
+        self.server_ready.wait(1.0)  # Wait for server to bind
+        self.bridge = DaemonBridge(port=self.port)
 
     def tearDown(self):
         self.server_running = False
         time.sleep(0.2)
-        try:
-            os.unlink(self.socket_path)
-        except OSError:
-            pass
 
     def _start_mock_server(self):
         """Start a mock daemon server."""
 
         def server_loop():
-            server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            server.bind(self.socket_path)
+            server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server.bind(("127.0.0.1", 0))
+            self.port = server.getsockname()[1]
             server.listen(5)
             server.settimeout(0.5)
+            self.server_ready.set()
 
             while self.server_running:
                 try:
@@ -192,7 +186,7 @@ class TestUnsubscribe(unittest.TestCase):
     """Test event unsubscription."""
 
     def test_unsubscribe_noop_when_not_subscribed(self):
-        bridge = DaemonBridge(socket_path="/nonexistent")
+        bridge = DaemonBridge(port=9999)
         bridge.unsubscribe()  # Should not raise
 
 

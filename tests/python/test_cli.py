@@ -70,23 +70,19 @@ class TestCLI(unittest.TestCase):
         args = self.parser.parse_args(["daemon"])
         self.assertEqual(args.command, "daemon")
         self.assertIsNone(args.network)
-        self.assertEqual(args.interval, 30)
         self.assertFalse(args.once)
 
     def test_daemon_with_options(self):
-        """daemon subcommand parses --network, --interval, --once."""
+        """daemon subcommand parses --network, --once."""
         args = self.parser.parse_args(
             [
                 "daemon",
                 "--network",
                 "campus",
-                "--interval",
-                "10",
                 "--once",
             ]
         )
         self.assertEqual(args.network, "campus")
-        self.assertEqual(args.interval, 10)
         self.assertTrue(args.once)
 
     def test_creds_store_subcommand(self):

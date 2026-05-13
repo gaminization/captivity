@@ -1,0 +1,31 @@
+[Unit]
+Description=Captivity — Autonomous Captive Portal Login Client (user session)
+# Wait for the network stack to be at least partially ready.
+After=network.target
+
+[Service]
+Type=simple
+
+# The user service runs inside the user's login session, so:
+#   - DBUS_SESSION_BUS_ADDRESS is already set by PAM/systemd --user
+#   - keyring / SecretService / libsecret are reachable
+#   - DISPLAY and XAUTHORITY are inherited from the session environment
+#   - NetworkManager events are visible through the user's dbus session
+
+ExecStart=%h/.local/bin/captivity daemon
+
+# Pick up DISPLAY and XAUTHORITY from the graphical session.
+# These are exported by the desktop environment into the user manager.
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=%h/.Xauthority
+
+# Restart quickly; the 60-second startup reconciliation window inside the
+# daemon means each restart is self-healing even under late WiFi association.
+Restart=always
+RestartSec=3
+
+StartLimitBurst=10
+StartLimitIntervalSec=60
+
+[Install]
+WantedBy=default.target

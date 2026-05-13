@@ -6,6 +6,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v3.2.0] — 2026-05-13
+
+### Added
+- **Dual-Backend Credential Store:** `credentials.py` now probes keyring availability at runtime before use. When the OS keyring (GNOME SecretService / KWallet) is unreachable — e.g. inside a system service without a D-Bus session — it transparently falls back to an AES-256-CBC encrypted file at `~/.local/share/captivity/credentials.enc` with a PBKDF2 key derived from `/etc/machine-id`. No plaintext credentials ever touch disk.
+- **User Systemd Service (`captivity-user.service`):** New `systemd/captivity-user.service` runs the daemon inside the user login session (`systemctl --user`), giving it full access to GNOME keyring, D-Bus, NetworkManager events, and display variables without any privilege escalation.
+- **One-Command Installer (`systemd/install-service.sh`):** Deploys the user service, stops the stale system service, enables `loginctl linger`, installs the tray autostart `.desktop` entry, and prints NM dispatcher instructions.
+- **NM Dispatcher Script (`99-captivity-dispatcher`):** Reacts to real NetworkManager lifecycle events (`up`, `connectivity-change`, `dhcp4-change`) by restarting the daemon, giving a hardware-level trigger independent of boot ordering.
+- **Boot Reconciliation Integration Tests (`test_boot_reconciliation.py`):** 12 new tests covering startup-window constants, late-WiFi convergence, no-event convergence, and NM-event-driven login.
+- **Startup Reconciliation Window:** Daemon probes every 5 s for the first 60 s after start, regardless of event delivery, to cover boot-time WiFi late-association.
+
+### Fixed
+- **Root cause of systemd auto-login failure:** System service had no access to the user D-Bus session bus, causing `keyring.get_password()` to throw silently. Migration to user service + credential file fallback resolves this permanently.
+- **Login error suppression:** `exc_info=True` added to `Login encountered an error` so the full traceback now appears in journald instead of being absorbed into a silent `extra` dict field.
+- **Stale system service:** `/etc/systemd/system/captivity.service` was using the old `--network T-VIT` hardcoded argument and stale `After=network-online.target` ordering; install script now cleanly replaces it.
+- **`test_credentials.py`:** Rewritten to cover the dual-backend API with proper `_keyring_available` mock targets and direct file-backend round-trip tests.
+
+---
+
+## [v3.1.0] — 2026-05-06
+
+### Added
+- **Startup Reconciliation Window:** `STARTUP_RECONCILIATION_WINDOW = 60 s`, `STARTUP_RECONCILIATION_INTERVAL = 5 s` — daemon probes aggressively on startup independent of NetworkManager event delivery, guaranteeing convergence even when WiFi associates late during boot.
+- **Time-based Steady-State Reconciliation:** After the startup window expires, any `INIT / ERROR / RETRY` state with no events for 30 s triggers a forced probe. The daemon can never idle forever.
+- **Boot Autonomy Integration Test (`test_boot_autonomy.py`):** Asserts daemon reaches `CONNECTED` from a portal without any manual CLI commands, using `nmcli`-based SSID auto-detection.
+- **SSID Auto-Detection:** `_handle_portal()` now calls `get_active_wifi_ssid()` when no `--network` flag is supplied, removing the last hardcoded flag from the service file.
+- **Structured Startup Logs:** `STARTUP_RECONCILIATION active=True elapsed_s=N forcing_probe=True` log lines emitted on every window probe.
+
+### Fixed
+- **`ILLEGAL TRANSITION: PORTAL → CONNECTED` error:** State machine now correctly permits `CONNECTED` as a target from any non-terminal state. Probe truth (HTTP 204 verified) overrides transition rigidity — the core invariant.
+- **Deterministic Pronto Networks plugin:** Removed brittle `BeautifulSoup` form-parsing; replaced with hardcoded `POST` to `phc.prontonetworks.com/cgi-bin/authlogin` matching the original v0.1 bash flow. Verification uses both Firefox canonical and Google 204 probes.
+- **Systemd `226/NAMESPACE` failure:** Removed incorrect root-local path (`/root/.local/bin`) from service; corrected to `/home/garvarora/.local/bin/captivity`. Added `After=NetworkManager.service`, `RestartSec=3`, expanded `StartLimitBurst=10`.
+- **`DaemonRunner` `interval` kwarg regression:** Removed obsolete constructor argument; aligned CLI `--once` path to call `_run_probe()` directly.
+- **`test_state.py` / `test_cli_commands_mocked.py`:** Updated to reflect probe-truth override semantics and correct `_run_probe` call path.
+
+---
+
+## [v3.0.0] — 2026-05-06
+
+### Added
+- **Cross-Platform TCP IPC:** Migrated the daemon IPC mechanism from Unix Domain Sockets to a local TCP socket (`127.0.0.1:8788`), ensuring full cross-platform compatibility across Windows, Linux, and macOS.
+- **Windows Service Stabilization:** Updated the Windows service daemon wrapper to fully support the new TCP-based IPC and lifecycle events.
+- **Enhanced Test Coverage:** Increased test suite strictness and coverage, achieving 100% test coverage for the plugin marketplace and Windows service stubs via `unittest.mock`. Overall project coverage now rigorously enforced at **>85%**.
+
+
 ## [v2.8.0] — 2026-05-05
 
 ### Added

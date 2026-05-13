@@ -1,6 +1,6 @@
 [package]
 name = "captivity-daemon"
-version = "2.0.0"
+version = "3.0.0"
 edition = "2021"
 description = "Rust networking daemon for Captivity captive portal client"
 license = "Apache-2.0"

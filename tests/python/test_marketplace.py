@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+import subprocess
 
 from captivity.plugins.marketplace import (
     Marketplace,
@@ -109,6 +110,20 @@ class TestMarketplace(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("pip install failed", msg)
 
+    @patch("captivity.plugins.marketplace.subprocess.run")
+    def test_install_timeout(self, mock_run):
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd="pip", timeout=60)
+        ok, msg = self.mp.install("captivity-plugin-cisco")
+        self.assertFalse(ok)
+        self.assertIn("timed out", msg)
+
+    @patch("captivity.plugins.marketplace.subprocess.run")
+    def test_install_exception(self, mock_run):
+        mock_run.side_effect = OSError("random error")
+        ok, msg = self.mp.install("captivity-plugin-cisco")
+        self.assertFalse(ok)
+        self.assertIn("error: random error", msg)
+
     def test_uninstall_not_installed(self):
         ok, msg = self.mp.uninstall("nonexistent")
         self.assertFalse(ok)
@@ -123,6 +138,36 @@ class TestMarketplace(unittest.TestCase):
         ok, msg = self.mp.uninstall("test-pkg")
         self.assertTrue(ok)
         self.assertFalse(self.registry.is_installed("test-pkg"))
+
+    @patch("captivity.plugins.marketplace.subprocess.run")
+    def test_uninstall_failure(self, mock_run):
+        self.registry.register(
+            PluginEntry(package="test-pkg", name="Test"),
+        )
+        mock_run.return_value = MagicMock(returncode=1, stderr="fail")
+        ok, msg = self.mp.uninstall("test-pkg")
+        self.assertFalse(ok)
+        self.assertIn("failed", msg)
+
+    @patch("captivity.plugins.marketplace.subprocess.run")
+    def test_uninstall_timeout(self, mock_run):
+        self.registry.register(
+            PluginEntry(package="test-pkg", name="Test"),
+        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd="pip", timeout=60)
+        ok, msg = self.mp.uninstall("test-pkg")
+        self.assertFalse(ok)
+        self.assertIn("timed out", msg)
+
+    @patch("captivity.plugins.marketplace.subprocess.run")
+    def test_uninstall_exception(self, mock_run):
+        self.registry.register(
+            PluginEntry(package="test-pkg", name="Test"),
+        )
+        mock_run.side_effect = OSError("random err")
+        ok, msg = self.mp.uninstall("test-pkg")
+        self.assertFalse(ok)
+        self.assertIn("error: random err", msg)
 
     def test_repr(self):
         r = repr(self.mp)

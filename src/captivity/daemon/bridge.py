@@ -27,10 +27,9 @@ from captivity.utils.logging import get_logger
 logger = get_logger("bridge")
 
 
-def _default_socket_path() -> str:
-    """Get default socket path matching Rust daemon."""
-    runtime = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
-    return os.path.join(runtime, "captivity-daemon.sock")
+def _default_port() -> int:
+    """Get default port matching Rust daemon."""
+    return int(os.environ.get("CAPTIVITY_PORT", 8788))
 
 
 def _find_daemon_binary() -> Optional[str]:
@@ -85,16 +84,16 @@ class DaemonBridge:
             bridge.subscribe_events(event_bus)
     """
 
-    def __init__(self, socket_path: Optional[str] = None) -> None:
-        self._socket_path = socket_path or _default_socket_path()
+    def __init__(self, port: Optional[int] = None) -> None:
+        self._port = port or _default_port()
         self._connected = False
         self._event_thread: Optional[threading.Thread] = None
         self._running = False
 
     @property
-    def socket_path(self) -> str:
-        """Get the IPC socket path."""
-        return self._socket_path
+    def port(self) -> int:
+        """Get the IPC port."""
+        return self._port
 
     @property
     def is_connected(self) -> bool:
@@ -183,9 +182,9 @@ class DaemonBridge:
             Parsed response dict, or None on error.
         """
         try:
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5.0)
-            sock.connect(self._socket_path)
+            sock.connect(("127.0.0.1", self._port))
 
             # Send command (newline-delimited JSON)
             msg = json.dumps(command) + "\n"
@@ -221,9 +220,9 @@ class DaemonBridge:
 
         while self._running:
             try:
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(5.0)
-                sock.connect(self._socket_path)
+                sock.connect(("127.0.0.1", self._port))
 
                 # Subscribe to events
                 msg = json.dumps({"command": "subscribe"}) + "\n"
@@ -270,14 +269,14 @@ class DaemonBridge:
 
 
 def start_daemon(
-    socket_path: Optional[str] = None,
+    port: Optional[int] = None,
     probe_url: Optional[str] = None,
     interval: Optional[int] = None,
 ) -> Optional[subprocess.Popen]:
     """Start the Rust daemon as a subprocess.
 
     Args:
-        socket_path: IPC socket path.
+        port: IPC TCP port.
         probe_url: Connectivity probe URL.
         interval: Poll interval in seconds.
 
@@ -290,8 +289,8 @@ def start_daemon(
         return None
 
     cmd = [binary]
-    if socket_path:
-        cmd.extend(["--socket", socket_path])
+    if port:
+        cmd.extend(["--port", str(port)])
     if probe_url:
         cmd.extend(["--probe-url", probe_url])
     if interval:
