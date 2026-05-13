@@ -41,14 +41,16 @@ class TestConnectionStateMachine(unittest.TestCase):
         self.assertTrue(self.sm.is_connected)
 
     def test_invalid_transition_forces_error(self):
-        # INIT -> CONNECTED is invalid
-        self.sm.transition(ConnectionState.CONNECTED)
+        # INIT -> WAIT_USER is invalid
+        self.sm.transition(ConnectionState.WAIT_USER)
         # Should force ERROR instead
         self.assertEqual(self.sm.state, ConnectionState.ERROR)
 
-        # ERROR -> CONNECTED is invalid
+        # ERROR -> CONNECTED is valid (probe override)
         self.sm.transition(ConnectionState.CONNECTED)
-        self.assertEqual(self.sm.state, ConnectionState.ERROR)
+        self.assertEqual(self.sm.state, ConnectionState.CONNECTED)
+
+        self.sm.force_transition(ConnectionState.ERROR)
 
         # ERROR -> RETRY is valid
         self.sm.transition(ConnectionState.RETRY)
@@ -96,6 +98,16 @@ class TestConnectionStateMachine(unittest.TestCase):
 
         self.sm.transition(ConnectionState.PROBING)
         self.assertEqual(len(self.transitions), 0)
+
+    def test_probe_verified_login_converges(self):
+        """test_probe_verified_login_converges"""
+        self.sm.transition(ConnectionState.PROBING)
+        self.sm.transition(ConnectionState.PORTAL)
+        # Login succeeds, probe overrides and transitions directly to CONNECTED
+        self.sm.transition(ConnectionState.CONNECTED)
+        self.assertEqual(self.sm.state, ConnectionState.CONNECTED)
+        # Verify no ERROR transitions
+        self.assertNotIn((ConnectionState.PORTAL, ConnectionState.ERROR), self.transitions)
 
 
 if __name__ == "__main__":

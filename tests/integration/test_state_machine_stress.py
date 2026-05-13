@@ -28,8 +28,8 @@ class TestStateMachineStress(unittest.TestCase):
 
     def test_invalid_transition_forces_error(self):
         sm = ConnectionStateMachine()
-        # Invalid
-        sm.transition(ConnectionState.CONNECTED)
+        # INIT -> WAIT_USER is always illegal (no probe-truth override applies)
+        sm.transition(ConnectionState.WAIT_USER)
         self.assertEqual(sm.state, ConnectionState.ERROR)
 
     def test_stress_100_transitions(self):

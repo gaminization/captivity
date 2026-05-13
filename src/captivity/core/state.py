@@ -55,6 +55,7 @@ VALID_TRANSITIONS: dict[ConnectionState, set[ConnectionState]] = {
         ConnectionState.WAIT_USER,
         ConnectionState.AUTHENTICATING,
         ConnectionState.ERROR,
+        ConnectionState.CONNECTED, # Probe truth override
     },
     ConnectionState.WAIT_USER: {
         ConnectionState.CONNECTED,
@@ -62,7 +63,7 @@ VALID_TRANSITIONS: dict[ConnectionState, set[ConnectionState]] = {
         ConnectionState.PORTAL,  # Cooldown expired, check again
     },
     ConnectionState.AUTHENTICATING: {
-        ConnectionState.CONNECTED,
+        ConnectionState.CONNECTED, # Probe truth override
         ConnectionState.RETRY,
         ConnectionState.ERROR,
         ConnectionState.WAIT_USER,  # Added for CAPTCHA fallback during login
@@ -73,9 +74,11 @@ VALID_TRANSITIONS: dict[ConnectionState, set[ConnectionState]] = {
     ConnectionState.RETRY: {
         ConnectionState.PROBING,
         ConnectionState.AUTHENTICATING,
+        ConnectionState.CONNECTED, # Probe truth override
     },
     ConnectionState.ERROR: {
         ConnectionState.RETRY,
+        ConnectionState.CONNECTED, # Probe truth override
     },
 }
 
@@ -150,14 +153,21 @@ class ConnectionStateMachine:
 
         allowed = VALID_TRANSITIONS.get(self.state, set())
         if new_state not in allowed:
-            # Force recovery on illegal state transitions to prevent deadlocks
-            logger.error(
-                "ILLEGAL TRANSITION: %s -> %s. Forcing ERROR state.",
-                self.state.name,
-                new_state.name,
-            )
-            self.force_transition(ConnectionState.ERROR)
-            return
+            # Connectivity truth dominates state rigidity
+            if new_state == ConnectionState.CONNECTED:
+                logger.warning(
+                    "ALLOWING INVALID TRANSITION %s -> CONNECTED due to probe truth override",
+                    self.state.name,
+                )
+            else:
+                # Force recovery on illegal state transitions to prevent deadlocks
+                logger.error(
+                    "ILLEGAL TRANSITION: %s -> %s. Forcing ERROR state.",
+                    self.state.name,
+                    new_state.name,
+                )
+                self.force_transition(ConnectionState.ERROR)
+                return
 
         old_state = self.state
 

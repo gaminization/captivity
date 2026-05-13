@@ -51,9 +51,8 @@ class TestBuildParser(unittest.TestCase):
         self.assertEqual(args.command, "status")
 
     def test_daemon(self):
-        args = self.parser.parse_args(["daemon", "--once", "-i", "10"])
+        args = self.parser.parse_args(["daemon", "--once"])
         self.assertTrue(args.once)
-        self.assertEqual(args.interval, 10)
 
     def test_plugins_search(self):
         args = self.parser.parse_args(["plugins", "search", "cisco"])
@@ -229,7 +228,7 @@ class TestCmdDaemon(unittest.TestCase):
         mock_cls.return_value = runner
         args = argparse.Namespace(network=None, portal=None, interval=30, once=True)
         self.assertEqual(cmd_daemon(args), 0)
-        runner.run_once.assert_called_once()
+        runner._run_probe.assert_called_once()
 
     @patch("captivity.daemon.runner.DaemonRunner")
     def test_run(self, mock_cls):
@@ -238,6 +237,18 @@ class TestCmdDaemon(unittest.TestCase):
         args = argparse.Namespace(network=None, portal=None, interval=30, once=False)
         self.assertEqual(cmd_daemon(args), 0)
         runner.run.assert_called_once()
+
+    def test_daemon_cli_boots(self):
+        """Regression test to ensure DaemonRunner API changes don't break CLI."""
+        import subprocess
+        # Run subprocess and assert it completes without crashing due to constructor errors
+        result = subprocess.run(
+            ["captivity", "daemon", "--network", "T-VIT", "--once"],
+            capture_output=True,
+            text=True
+        )
+        self.assertEqual(result.returncode, 0, f"Daemon CLI crashed: {result.stderr}")
+        self.assertNotIn("unexpected keyword argument", result.stderr)
 
 
 class TestCmdPlugins(unittest.TestCase):

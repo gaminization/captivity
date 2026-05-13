@@ -8,7 +8,13 @@ Guarantees:
   - Eventual consistency (reconciliation loop)
   - No stuck states (state watchdogs)
   - Crash resilience (recovery loops)
+  - Startup reconciliation window (survives boot-time event loss)
 """
+
+# Startup reconciliation: probe aggressively for this many seconds
+# after daemon initialisation, regardless of event delivery.
+STARTUP_RECONCILIATION_WINDOW = 60       # seconds
+STARTUP_RECONCILIATION_INTERVAL = 5     # probe every N seconds during window
 
 import signal
 import time
@@ -106,6 +112,10 @@ class DaemonRunner:
         self.browser_open_count = 0
         self.last_browser_open_time = 0.0
 
+        # Startup reconciliation state
+        self._startup_time: float = time.time()
+        self._last_startup_probe: float = 0.0
+
         signal.signal(signal.SIGTERM, self._handle_signal)
         signal.signal(signal.SIGINT, self._handle_signal)
 
@@ -164,21 +174,45 @@ class DaemonRunner:
         )
         return False
 
+    def _in_startup_window(self) -> bool:
+        """Return True if we are still inside the startup reconciliation window."""
+        return (time.time() - self._startup_time) < STARTUP_RECONCILIATION_WINDOW
+
+    def _startup_reconciliation_due(self) -> bool:
+        """Return True if it is time for the next startup-window probe."""
+        if not self._in_startup_window():
+            return False
+        return (time.time() - self._last_startup_probe) >= STARTUP_RECONCILIATION_INTERVAL
+
     def _run_probe(self) -> None:
         """Execute connectivity probe and force state transition (Global Truth Rule)."""
+        now = time.time()
+        elapsed = now - self._startup_time
+
+        if self._in_startup_window():
+            logger.info(
+                "STARTUP_RECONCILIATION",
+                extra={
+                    "active": True,
+                    "elapsed_s": round(elapsed, 1),
+                    "forcing_probe": True,
+                },
+            )
+
+        self._last_startup_probe = now
         self.state_machine.force_transition(ConnectionState.PROBING)
 
         result = probe_connectivity_detailed(url=self.portal_url or "")
 
         logger.info(
-            "Probe complete",
-            extra={
-                "state": "PROBING",
-                "result": result.status.value,
-                "method": result.detection_method,
-                "reason": "|".join(result.probe_details),
-            },
+            "PROBE RESULT: %s | CONFIDENCE: %.2f | PORTAL: %s | CAPTCHA: %s | METHOD: %s",
+            result.status.value,
+            getattr(result, "confidence", 1.0),
+            getattr(result, "has_captive_portal", False),
+            getattr(result, "has_captcha", False),
+            result.detection_method,
         )
+        logger.info("Probe complete")
 
         if result.status == ConnectivityStatus.CONNECTED:
             self.state_machine.force_transition(ConnectionState.CONNECTED)
@@ -229,7 +263,11 @@ class DaemonRunner:
                 self.state_machine.transition(ConnectionState.ERROR)
 
         except Exception as exc:
-            logger.error("Login encountered an error", extra={"exception": str(exc)})
+            logger.error(
+                "Login encountered an error: %s",
+                exc,
+                exc_info=True,
+            )
             self.state_machine.transition(ConnectionState.ERROR)
 
     def _handle_network_event(self, event: NetworkEvent) -> None:
@@ -245,12 +283,19 @@ class DaemonRunner:
 
     def run(self) -> None:
         """Failure-proof main event loop."""
-        logger.info("Daemon starting up", extra={"action": "INIT"})
+        logger.info(
+            "Daemon starting up",
+            extra={
+                "action": "INIT",
+                "startup_reconciliation_window_s": STARTUP_RECONCILIATION_WINDOW,
+                "startup_reconciliation_interval_s": STARTUP_RECONCILIATION_INTERVAL,
+            },
+        )
         self.monitor.start()
 
-        # Startup stabilization: wait for network to settle, then force initial evaluation
+        # Brief stabilisation: let NetworkManager settle NIC association, ARP, DHCP.
+        # We do NOT rely on this being sufficient — the reconciliation window covers any gap.
         time.sleep(2.0)
-        self.state_machine.force_transition(ConnectionState.PROBING)
         self._run_probe()
 
         while self.should_run:
@@ -264,7 +309,24 @@ class DaemonRunner:
                 # 2. Watchdog Invariant Enforcement
                 self.state_machine.check_watchdog()
 
-                # 3. Reconciliation Loop (Event Loss Handling)
+                # 3a. Startup Reconciliation Window
+                # Probe every STARTUP_RECONCILIATION_INTERVAL seconds regardless of
+                # event delivery.  Covers WiFi-late-association and missed NM events.
+                if self._startup_reconciliation_due():
+                    elapsed = time.time() - self._startup_time
+                    logger.info(
+                        "STARTUP_RECONCILIATION",
+                        extra={
+                            "active": True,
+                            "elapsed_s": round(elapsed, 1),
+                            "forcing_probe": True,
+                        },
+                    )
+                    self._run_probe()
+                    self.last_event_time = time.time()
+                    continue
+
+                # 3b. Steady-state Reconciliation Loop (Event Loss Handling)
                 if time.time() - self.last_event_time > self.reconciliation_interval:
                     self.last_event_time = time.time()
 
@@ -272,31 +334,40 @@ class DaemonRunner:
                         ConnectionState.WAIT_USER,
                         ConnectionState.CONNECTED,
                     ):
-                        # Background verify
                         result = probe_connectivity_detailed()
                         if self.state_machine.state == ConnectionState.WAIT_USER:
                             if result.status == ConnectivityStatus.CONNECTED:
                                 logger.info(
                                     "Reconciliation loop restored internet connection",
-                                    extra={
-                                        "result": "INTERNET_RESTORED",
-                                        "action": "CONNECTED",
-                                    },
+                                    extra={"result": "INTERNET_RESTORED", "action": "CONNECTED"},
                                 )
                                 self.state_machine.transition(ConnectionState.CONNECTED)
                             elif result.status == ConnectivityStatus.PORTAL_DETECTED:
-                                # Still portal, wait. Watchdog will eventually push to RETRY.
-                                pass
+                                pass  # Watchdog will push to RETRY
                         elif self.state_machine.state == ConnectionState.CONNECTED:
                             if result.status != ConnectivityStatus.CONNECTED:
                                 logger.warning(
                                     "Reconciliation loop lost connection",
-                                    extra={
-                                        "result": "CONNECTION_LOST",
-                                        "action": "PROBE",
-                                    },
+                                    extra={"result": "CONNECTION_LOST", "action": "PROBE"},
                                 )
                                 self._run_probe()
+
+                    elif self.state_machine.state in (
+                        ConnectionState.INIT,
+                        ConnectionState.ERROR,
+                        ConnectionState.RETRY,
+                    ):
+                        # Time-based probe reconciliation: even outside the startup window,
+                        # if we have been stuck in a non-terminal state with no events,
+                        # force a fresh probe so we never idle forever.
+                        logger.info(
+                            "Time-based reconciliation probe",
+                            extra={
+                                "state": self.state_machine.state.name,
+                                "action": "PROBE",
+                            },
+                        )
+                        self._run_probe()
 
                 # 4. Retry Engine Handling
                 if self.state_machine.state == ConnectionState.RETRY:
