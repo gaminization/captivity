@@ -10,6 +10,15 @@ try:
 except ImportError:
     HAS_HYPOTHESIS = False
 
+    def given(*args, **kwargs):
+        return lambda f: f
+
+    class DummyStrategies:
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    st = DummyStrategies()
+
 import pytest
 
 from captivity.core.state import ConnectionState, ConnectionStateMachine

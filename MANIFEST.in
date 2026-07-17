@@ -1,0 +1,2 @@
+recursive-include daemon-rs *
+include setup.py

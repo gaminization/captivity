@@ -98,11 +98,16 @@ The daemon runs this pipeline continuously, reacting to network changes via D-Bu
 
 ## Installation
 
-### pip (recommended)
+### Quick Install (Recommended)
+
+One command to install the package and another to set up all system integrations (background daemon, instant-reconnects, and systray UI):
 
 ```bash
 pip install captivity-cli
+captivity install
 ```
+
+*(Note: If you use `pipx` to install python apps, you must use `pipx install --system-site-packages captivity-cli` so the system tray can access the GTK libraries installed via apt).*
 
 ### Homebrew
 
@@ -185,12 +190,13 @@ Environment override format: `CAPTIVITY_SECTION_KEY` (e.g., `CAPTIVITY_PROBE_TIM
 
 ## System Integration
 
-### systemd
+### Background Service
+
+The background service (systemd) handles automatic login on boot and reconnections. It runs as a user service.
 
 ```bash
-sudo cp systemd/captivity.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now captivity
+# Generate and install the user systemd service
+captivity install
 ```
 
 Check status:

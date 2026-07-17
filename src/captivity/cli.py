@@ -570,6 +570,163 @@ def cmd_daemon_rs(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_install(args: argparse.Namespace) -> int:
+    """Handle the 'install' subcommand."""
+    import os
+    import shutil
+    import subprocess
+    from pathlib import Path
+    import tempfile
+
+    print("Setting up Captivity...\n")
+    
+    # 1. System Dependencies (Tray)
+    if shutil.which("apt-get"):
+        print("1/4 Installing system dependencies (GTK3 for systray)...")
+        print("    You may be prompted for your sudo password.")
+        try:
+            subprocess.run(["sudo", "apt-get", "update"], check=True)
+            subprocess.run(["sudo", "apt-get", "install", "-y", "python3-gi", "gir1.2-gtk-3.0"], check=True)
+            print("  ✓ GTK3 dependencies installed\n")
+        except subprocess.CalledProcessError as exc:
+            print(f"  ⚠ Failed to install GTK dependencies (ignoring): {exc}\n")
+    
+    # 2. Find binary path & Symlink
+    print("2/5 Configuring daemon and global PATH...")
+    # Use sys.argv[0] to get the exact script being executed, then resolve any existing symlinks
+    binary_path = os.path.realpath(shutil.which("captivity") or sys.argv[0])
+    if not os.path.exists(binary_path):
+        print(f"Error: Could not determine absolute path for captivity executable ({binary_path})")
+        return 1
+
+    # Ensure captivity is globally available in PATH
+    target_symlink = "/usr/local/bin/captivity"
+    if binary_path != target_symlink:
+        try:
+            subprocess.run(["sudo", "ln", "-sf", binary_path, target_symlink], check=True)
+            print(f"  ✓ Created global symlink at {target_symlink}\n")
+        except subprocess.CalledProcessError as exc:
+            print(f"  ⚠ Failed to create global symlink (ignoring): {exc}\n")
+    else:
+        print(f"  ✓ Executable is already at {target_symlink}\n")
+
+    # 3. Generate service file
+    service_content = f"""[Unit]
+Description=Captivity Autonomous Login Daemon
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart={binary_path} daemon
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
+"""
+    
+    user_systemd_dir = Path.home() / ".config" / "systemd" / "user"
+    user_systemd_dir.mkdir(parents=True, exist_ok=True)
+    
+    service_file = user_systemd_dir / "captivity.service"
+    service_file.write_text(service_content)
+    print(f"  ✓ Written service file to {service_file}")
+
+    try:
+        subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
+        subprocess.run(["systemctl", "--user", "enable", "--now", "captivity"], check=True)
+        print("  ✓ User service enabled and started")
+    except subprocess.CalledProcessError as exc:
+        print(f"  ✗ Failed to enable systemd service: {exc}")
+        return 1
+        
+    try:
+        user = os.environ.get("USER", os.environ.get("LOGNAME", ""))
+        if user:
+            subprocess.run(["loginctl", "enable-linger", user], check=True, capture_output=True)
+            print(f"  ✓ Linger enabled for {user}\n")
+    except Exception:
+        print("  ⚠ Could not enable linger — service won't auto-start at boot without an active session\n")
+        
+    # 4. Dispatcher script (Instant Reconnect)
+    print("4/5 Installing NetworkManager dispatcher for instant reconnects...")
+    dispatcher_content = """#!/bin/bash
+# /etc/NetworkManager/dispatcher.d/99-captivity
+# NetworkManager dispatcher script for Captivity.
+
+INTERFACE="$1"
+STATUS="$2"
+
+logger "[captivity-dispatcher] DISPATCHER_EVENT interface=$INTERFACE status=$STATUS"
+
+case "$STATUS" in
+    up|connectivity-change|dhcp4-change|dhcp6-change)
+        logger "[captivity-dispatcher] Triggering captivity restart for status=$STATUS"
+        for SERVICE_FILE in /home/*/.config/systemd/user/captivity.service; do
+            if [ -f "$SERVICE_FILE" ]; then
+                USER_HOME=$(dirname $(dirname $(dirname $(dirname "$SERVICE_FILE"))))
+                TARGET_USER=$(basename "$USER_HOME")
+                TARGET_UID=$(id -u "$TARGET_USER" 2>/dev/null)
+                if [ -n "$TARGET_UID" ]; then
+                    logger "[captivity-dispatcher] Restarting captivity user service for $TARGET_USER"
+                    sudo -u "$TARGET_USER" XDG_RUNTIME_DIR=/run/user/"$TARGET_UID" systemctl --user restart captivity || true
+                fi
+            fi
+        done
+        ;;
+    *)
+        ;;
+esac
+"""
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write(dispatcher_content)
+            temp_path = f.name
+        
+        subprocess.run(["sudo", "cp", temp_path, "/etc/NetworkManager/dispatcher.d/99-captivity"], check=True)
+        subprocess.run(["sudo", "chmod", "755", "/etc/NetworkManager/dispatcher.d/99-captivity"], check=True)
+        os.unlink(temp_path)
+        print("  ✓ NetworkManager dispatcher installed\n")
+    except subprocess.CalledProcessError as exc:
+        print(f"  ✗ Failed to install NetworkManager dispatcher: {exc}\n")
+
+    # 5. System Tray Autostart
+    print("5/5 Configuring System Tray Autostart...")
+    autostart_dir = Path.home() / ".config" / "autostart"
+    autostart_dir.mkdir(parents=True, exist_ok=True)
+    
+    desktop_file = autostart_dir / "captivity-tray.desktop"
+    desktop_content = f"""[Desktop Entry]
+Type=Application
+Name=Captivity
+GenericName=WiFi Portal Login
+Comment=Autonomous captive portal login
+Exec={binary_path} tray
+Icon=network-wireless
+Terminal=false
+Categories=Network;System;Monitor;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
+"""
+    desktop_file.write_text(desktop_content)
+    print(f"  ✓ Written autostart file to {desktop_file}")
+    
+    # Try to launch it right now in the background
+    try:
+        subprocess.Popen([binary_path, "tray"], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print("  ✓ Launched system tray icon\n")
+    except Exception as exc:
+        print(f"  ⚠ Could not launch system tray immediately: {exc}\n")
+
+    print("Setup complete! Captivity is now running in the background.")
+    
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -758,6 +915,13 @@ def build_parser() -> argparse.ArgumentParser:
     drs_sub.add_parser("stop", help="Stop the daemon")
     drs_sub.add_parser("probe", help="Request immediate probe")
     drs_parser.set_defaults(func=cmd_daemon_rs)
+
+    # install
+    install_parser = subparsers.add_parser(
+        "install",
+        help="Install the background systemd service",
+    )
+    install_parser.set_defaults(func=cmd_install)
 
     return parser
 

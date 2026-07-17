@@ -12,7 +12,7 @@ Type=simple
 #   - DISPLAY and XAUTHORITY are inherited from the session environment
 #   - NetworkManager events are visible through the user's dbus session
 
-ExecStart=%h/.local/bin/captivity daemon
+ExecStart=/home/gaminizer/Projects/captivity/.venv/bin/captivity daemon
 
 # Pick up DISPLAY and XAUTHORITY from the graphical session.
 # These are exported by the desktop environment into the user manager.

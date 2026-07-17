@@ -19,6 +19,7 @@ import socket
 import subprocess
 import threading
 import time
+import shutil
 from typing import Optional
 
 from captivity.daemon.events import Event, EventBus
@@ -34,9 +35,13 @@ def _default_port() -> int:
 
 def _find_daemon_binary() -> Optional[str]:
     """Locate the captivity-daemon binary."""
-    # Check common locations
+    # Look in PATH (where pip installs it)
+    binary = shutil.which("captivity-daemon")
+    if binary:
+        return binary
+
+    # Fallback to local development tree
     candidates = [
-        # In project tree (development)
         os.path.join(
             os.path.dirname(__file__),
             "..",
@@ -57,9 +62,6 @@ def _find_daemon_binary() -> Optional[str]:
             "debug",
             "captivity-daemon",
         ),
-        # System install
-        "/usr/local/bin/captivity-daemon",
-        "/usr/bin/captivity-daemon",
     ]
 
     for path in candidates:

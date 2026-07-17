@@ -150,7 +150,7 @@ impl IpcServer {
         command_tx: mpsc::Sender<IpcCommand>,
         subscribers: Arc<Mutex<Vec<TcpStream>>>,
     ) {
-        let (reader, mut writer) = stream.split();
+        let (reader, mut writer) = stream.into_split();
         let mut reader = BufReader::new(reader);
         let mut line = String::new();
 
@@ -187,7 +187,7 @@ impl IpcServer {
 
                         if is_subscribe {
                             // Reassemble stream and add to subscribers
-                            let mut stream = reader.into_inner().unsplit(writer);
+                            let stream = reader.into_inner().reunite(writer).unwrap();
                             let mut subs = subscribers.lock().await;
                             subs.push(stream);
                         }

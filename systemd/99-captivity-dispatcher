@@ -18,7 +18,18 @@ logger "[captivity-dispatcher] DISPATCHER_EVENT interface=$INTERFACE status=$STA
 case "$STATUS" in
     up|connectivity-change|dhcp4-change|dhcp6-change)
         logger "[captivity-dispatcher] Triggering captivity restart for status=$STATUS"
-        systemctl restart captivity
+        # Find any user who has the captivity service installed and restart it
+        for SERVICE_FILE in /home/*/.config/systemd/user/captivity.service; do
+            if [ -f "$SERVICE_FILE" ]; then
+                USER_HOME=$(dirname $(dirname $(dirname $(dirname "$SERVICE_FILE"))))
+                TARGET_USER=$(basename "$USER_HOME")
+                TARGET_UID=$(id -u "$TARGET_USER" 2>/dev/null)
+                if [ -n "$TARGET_UID" ]; then
+                    logger "[captivity-dispatcher] Restarting captivity user service for $TARGET_USER"
+                    sudo -u "$TARGET_USER" XDG_RUNTIME_DIR=/run/user/"$TARGET_UID" systemctl --user restart captivity || true
+                fi
+            fi
+        done
         ;;
     *)
         # No action needed for disconnect, pre-up, etc.
