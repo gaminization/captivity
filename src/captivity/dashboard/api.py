@@ -51,6 +51,9 @@ class DashboardAPI:
                 self.stats_db = StatsDatabase()
             except Exception:
                 pass
+        else:
+            # Force reload from disk to see daemon's background updates
+            self.stats_db._load()
 
         if self.profile_db is None:
             try:
@@ -82,6 +85,32 @@ class DashboardAPI:
             result["network"] = session.network
             result["uptime"] = session.duration
             result["uptime_str"] = session.duration_str
+        elif self.stats_db:
+            history = self.stats_db.get_history(limit=1)
+            if history:
+                last_event = history[0]
+                if last_event.event_type == "login_success":
+                    result["state"] = "connected"
+                    result["network"] = last_event.network
+                    uptime = time.time() - last_event.timestamp
+                    result["uptime"] = uptime
+                    
+                    secs = int(uptime)
+                    if secs < 60:
+                        result["uptime_str"] = f"{secs}s"
+                    elif secs < 3600:
+                        result["uptime_str"] = f"{secs // 60}m {secs % 60}s"
+                    else:
+                        hours = secs // 3600
+                        mins = (secs % 3600) // 60
+                        result["uptime_str"] = f"{hours}h {mins}m"
+                elif last_event.event_type == "reconnect":
+                    result["state"] = "reconnecting"
+                    result["network"] = last_event.network
+                else:
+                    result["state"] = "idle"
+            else:
+                result["state"] = "idle"
         else:
             result["state"] = "idle"
 

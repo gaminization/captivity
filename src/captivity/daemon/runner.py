@@ -26,6 +26,8 @@ from captivity.core.state import (
 from captivity.core.retry import RetryEngine, RetryConfig, FailureType
 from captivity.daemon.events import Event, EventBus
 from captivity.daemon.network_monitor import NetworkMonitor, NetworkEvent
+from captivity.telemetry.stats import StatsDatabase
+from captivity.telemetry.session import SessionTracker
 from captivity.utils.logging import get_logger
 import sys
 
@@ -104,6 +106,9 @@ class DaemonRunner:
         )
         self.monitor = NetworkMonitor()
 
+        self.stats_db = StatsDatabase()
+        self.session_tracker = SessionTracker()
+
         self.last_event_time: float = time.time()
         self.reconciliation_interval = 30.0  # seconds
 
@@ -134,17 +139,31 @@ class DaemonRunner:
         new_state: ConnectionState,
     ) -> None:
         """Map internal state transitions to event bus and retry engine."""
+        network_name = self.network or "unknown"
         if new_state == ConnectionState.CONNECTED:
             self.retry_engine.record_success()
             self.browser_open_count = 0  # Reset CAPTCHA cooldown
             self.event_bus.publish(Event.LOGIN_SUCCESS)
+            self.stats_db.record_login_success(network_name)
+            self.session_tracker.start(network_name)
         elif new_state == ConnectionState.ERROR:
             self.retry_engine.record_failure(FailureType.TRANSIENT)
+            if old_state in (ConnectionState.AUTHENTICATING, ConnectionState.PORTAL):
+                self.stats_db.record_login_failure(network_name, "transition_error")
         elif (
             old_state == ConnectionState.CONNECTED
             and new_state != ConnectionState.CONNECTED
         ):
             self.event_bus.publish(Event.SESSION_EXPIRED)
+            ended_session = self.session_tracker.end()
+            if ended_session:
+                self.stats_db.record_session_end(
+                    network=ended_session.network,
+                    duration=ended_session.duration,
+                )
+        
+        if old_state == ConnectionState.ERROR and new_state == ConnectionState.PROBING:
+            self.stats_db.record_reconnect(network_name)
 
     def _should_open_browser(self) -> bool:
         """Adaptive cooldown logic for CAPTCHA browser opening."""
