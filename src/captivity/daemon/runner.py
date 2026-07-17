@@ -139,6 +139,10 @@ class DaemonRunner:
         new_state: ConnectionState,
     ) -> None:
         """Map internal state transitions to event bus and retry engine."""
+        if not self.network:
+            from captivity.daemon.network_monitor import get_active_wifi_ssid
+            self.network = get_active_wifi_ssid()
+
         network_name = self.network or "unknown"
         if new_state == ConnectionState.CONNECTED:
             self.retry_engine.record_success()
