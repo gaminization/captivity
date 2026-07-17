@@ -10,7 +10,9 @@ class TestDashboardAPIStatus(unittest.TestCase):
     """Test status endpoint."""
 
     def test_idle_status(self):
-        api = DashboardAPI()
+        db = MagicMock()
+        db.get_history.return_value = []
+        api = DashboardAPI(stats_db=db)
         result = api.get_status()
         self.assertEqual(result["state"], "idle")
         self.assertIn("timestamp", result)
@@ -33,7 +35,10 @@ class TestDashboardAPIStats(unittest.TestCase):
     """Test stats endpoint."""
 
     def test_empty_stats(self):
-        api = DashboardAPI()
+        db = MagicMock()
+        db.total_logins = 0
+        db.get_all_stats.return_value = []
+        api = DashboardAPI(stats_db=db)
         result = api.get_stats()
         self.assertEqual(result["total_logins"], 0)
 
@@ -63,7 +68,9 @@ class TestDashboardAPIHistory(unittest.TestCase):
     """Test history endpoint."""
 
     def test_empty_history(self):
-        api = DashboardAPI()
+        db = MagicMock()
+        db.get_history.return_value = []
+        api = DashboardAPI(stats_db=db)
         result = api.get_history()
         self.assertEqual(result, [])
 
@@ -143,7 +150,9 @@ class TestDashboardAPIRouting(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_all_routes_work(self):
-        api = DashboardAPI()
+        db = MagicMock()
+        db.get_history.return_value = []
+        api = DashboardAPI(stats_db=db)
         for path in [
             "/api/status",
             "/api/stats",
