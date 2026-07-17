@@ -11,10 +11,6 @@ Guarantees:
   - Startup reconciliation window (survives boot-time event loss)
 """
 
-# Startup reconciliation: probe aggressively for this many seconds
-# after daemon initialisation, regardless of event delivery.
-STARTUP_RECONCILIATION_WINDOW = 60       # seconds
-STARTUP_RECONCILIATION_INTERVAL = 5     # probe every N seconds during window
 
 import signal
 import time
@@ -32,6 +28,11 @@ from captivity.daemon.events import Event, EventBus
 from captivity.daemon.network_monitor import NetworkMonitor, NetworkEvent
 from captivity.utils.logging import get_logger
 import sys
+
+# Startup reconciliation: probe aggressively for this many seconds
+# after daemon initialisation, regardless of event delivery.
+STARTUP_RECONCILIATION_WINDOW = 60  # seconds
+STARTUP_RECONCILIATION_INTERVAL = 5  # probe every N seconds during window
 
 logger = get_logger("daemon")
 
@@ -182,7 +183,9 @@ class DaemonRunner:
         """Return True if it is time for the next startup-window probe."""
         if not self._in_startup_window():
             return False
-        return (time.time() - self._last_startup_probe) >= STARTUP_RECONCILIATION_INTERVAL
+        return (
+            time.time() - self._last_startup_probe
+        ) >= STARTUP_RECONCILIATION_INTERVAL
 
     def _run_probe(self) -> None:
         """Execute connectivity probe and force state transition (Global Truth Rule)."""
@@ -339,7 +342,10 @@ class DaemonRunner:
                             if result.status == ConnectivityStatus.CONNECTED:
                                 logger.info(
                                     "Reconciliation loop restored internet connection",
-                                    extra={"result": "INTERNET_RESTORED", "action": "CONNECTED"},
+                                    extra={
+                                        "result": "INTERNET_RESTORED",
+                                        "action": "CONNECTED",
+                                    },
                                 )
                                 self.state_machine.transition(ConnectionState.CONNECTED)
                             elif result.status == ConnectivityStatus.PORTAL_DETECTED:
@@ -348,7 +354,10 @@ class DaemonRunner:
                             if result.status != ConnectivityStatus.CONNECTED:
                                 logger.warning(
                                     "Reconciliation loop lost connection",
-                                    extra={"result": "CONNECTION_LOST", "action": "PROBE"},
+                                    extra={
+                                        "result": "CONNECTION_LOST",
+                                        "action": "PROBE",
+                                    },
                                 )
                                 self._run_probe()
 

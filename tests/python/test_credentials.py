@@ -2,14 +2,13 @@
 
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from captivity.core.credentials import (
     CredentialError,
     _file_delete,
     _file_retrieve,
     _file_store,
-    delete,
     list_networks,
     retrieve,
     store,
@@ -23,6 +22,7 @@ class TestFileFallback(unittest.TestCase):
         # Point the file backend at a temp path so tests don't touch the real store
         import captivity.core.credentials as creds_mod
         import tempfile
+
         self._tmpdir = tempfile.mkdtemp()
         self._orig_dir = creds_mod._CRED_DIR
         self._orig_file = creds_mod._CRED_FILE
@@ -32,6 +32,7 @@ class TestFileFallback(unittest.TestCase):
     def tearDown(self):
         import captivity.core.credentials as creds_mod
         import shutil
+
         shutil.rmtree(self._tmpdir, ignore_errors=True)
         creds_mod._CRED_DIR = self._orig_dir
         creds_mod._CRED_FILE = self._orig_file
@@ -65,6 +66,7 @@ class TestCredentialsPublicAPI(unittest.TestCase):
     def setUp(self):
         import captivity.core.credentials as creds_mod
         import tempfile
+
         self._tmpdir = tempfile.mkdtemp()
         self._orig_dir = creds_mod._CRED_DIR
         self._orig_file = creds_mod._CRED_FILE
@@ -74,6 +76,7 @@ class TestCredentialsPublicAPI(unittest.TestCase):
     def tearDown(self):
         import captivity.core.credentials as creds_mod
         import shutil
+
         shutil.rmtree(self._tmpdir, ignore_errors=True)
         creds_mod._CRED_DIR = self._orig_dir
         creds_mod._CRED_FILE = self._orig_file
@@ -81,6 +84,7 @@ class TestCredentialsPublicAPI(unittest.TestCase):
     @patch("captivity.core.credentials._keyring_available", return_value=True)
     def test_store_uses_keyring_when_available(self, mock_avail):
         import keyring as _keyring_mod
+
         with patch.object(_keyring_mod, "set_password") as mock_set:
             store("mynet", "user", "pass")
         mock_set.assert_any_call("captivity", "mynet-username", "user")
@@ -95,8 +99,14 @@ class TestCredentialsPublicAPI(unittest.TestCase):
     @patch("captivity.core.credentials._keyring_available", return_value=True)
     def test_retrieve_uses_keyring_when_available(self, mock_avail):
         import keyring as _keyring_mod
-        with patch.object(_keyring_mod, "get_password",
-                          side_effect=lambda svc, key: "testuser" if "username" in key else "testpass"):
+
+        with patch.object(
+            _keyring_mod,
+            "get_password",
+            side_effect=lambda svc, key: "testuser"
+            if "username" in key
+            else "testpass",
+        ):
             username, password = retrieve("mynet")
         self.assertEqual(username, "testuser")
         self.assertEqual(password, "testpass")
@@ -116,7 +126,10 @@ class TestCredentialsPublicAPI(unittest.TestCase):
     @patch("captivity.core.credentials._keyring_available", return_value=True)
     def test_store_raises_credential_error_when_both_backends_fail(self, mock_avail):
         import keyring as _keyring_mod
-        with patch.object(_keyring_mod, "set_password", side_effect=Exception("D-Bus dead")):
+
+        with patch.object(
+            _keyring_mod, "set_password", side_effect=Exception("D-Bus dead")
+        ):
             # File backend should succeed as fallback
             store("mynet", "u", "p")
         # File fallback should have been used

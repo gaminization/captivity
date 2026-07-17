@@ -1,6 +1,5 @@
 """Integration tests for daemon boot autonomy."""
 
-import argparse
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -44,7 +43,7 @@ class TestBootAutonomy(unittest.TestCase):
         # Initialize the daemon without hardcoded network (autonomy invariant)
         runner = DaemonRunner(network=None, portal_url=None)
         runner.state_machine.debounce_duration = 0.0
-        
+
         # Initial state should be INIT
         self.assertEqual(runner.state_machine.state, ConnectionState.INIT)
 
@@ -57,17 +56,16 @@ class TestBootAutonomy(unittest.TestCase):
         # _handle_portal fetches active SSID ("T-VIT")
         # _handle_portal attempts login, which succeeds
         # _handle_portal sets state to CONNECTED
-        
+
         self.assertEqual(runner.state_machine.state, ConnectionState.CONNECTED)
         self.assertEqual(runner.network, "T-VIT")
 
         # Verify no manual CLI flags were required
         mock_get_ssid.assert_called_once()
         mock_login.assert_called_once_with(
-            network="T-VIT", 
-            portal_url=None, 
-            open_browser=True
+            network="T-VIT", portal_url=None, open_browser=True
         )
+
 
 if __name__ == "__main__":
     unittest.main()

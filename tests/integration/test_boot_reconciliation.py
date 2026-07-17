@@ -8,7 +8,7 @@ drives the system to CONNECTED without any manual commands.
 
 import time
 import unittest
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from captivity.core.login import LoginResult
 from captivity.core.probe import ConnectivityStatus
@@ -28,7 +28,7 @@ def _make_probe(status: ConnectivityStatus) -> MagicMock:
     m.probe_details = []
     m.has_captcha = False
     m.confidence = 1.0
-    m.has_captive_portal = (status == ConnectivityStatus.PORTAL_DETECTED)
+    m.has_captive_portal = status == ConnectivityStatus.PORTAL_DETECTED
     return m
 
 
@@ -137,7 +137,9 @@ class TestNoManualCommandsRequired(unittest.TestCase):
     @patch("captivity.daemon.runner.probe_connectivity_detailed")
     @patch("captivity.daemon.runner.do_login")
     @patch("captivity.daemon.network_monitor.get_active_wifi_ssid")
-    def test_no_network_arg_no_event_still_converges(self, mock_ssid, mock_login, mock_probe):
+    def test_no_network_arg_no_event_still_converges(
+        self, mock_ssid, mock_login, mock_probe
+    ):
         """
         Daemon initialised with no --network and receives no NM events.
         Startup reconciliation eventually finds the portal and logs in.
@@ -158,7 +160,9 @@ class TestNoManualCommandsRequired(unittest.TestCase):
     @patch("captivity.daemon.runner.probe_connectivity_detailed")
     @patch("captivity.daemon.runner.do_login")
     @patch("captivity.daemon.network_monitor.get_active_wifi_ssid")
-    def test_nm_event_followed_by_reconciliation(self, mock_ssid, mock_login, mock_probe):
+    def test_nm_event_followed_by_reconciliation(
+        self, mock_ssid, mock_login, mock_probe
+    ):
         """NM sends CONNECTED event → probe confirms PORTAL → login → CONNECTED."""
         mock_ssid.return_value = "T-VIT"
         mock_login.return_value = LoginResult.SUCCESS

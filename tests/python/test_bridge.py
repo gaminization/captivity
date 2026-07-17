@@ -3,7 +3,6 @@
 import json
 import os
 import socket
-import tempfile
 import threading
 import time
 import unittest

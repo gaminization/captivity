@@ -2,13 +2,13 @@
 
 ```text
 usage: captivity [-h] [--version] [-v] [-q]
-                 {login,probe,status,daemon,creds,plugins,networks,tray,learn,stats,dashboard,simulate,config,daemon-rs}
+                 {login,probe,status,daemon,creds,plugins,networks,tray,learn,stats,dashboard,simulate,config,daemon-rs,install}
                  ...
 
 Captivity — Autonomous captive portal login client
 
 positional arguments:
-  {login,probe,status,daemon,creds,plugins,networks,tray,learn,stats,dashboard,simulate,config,daemon-rs}
+  {login,probe,status,daemon,creds,plugins,networks,tray,learn,stats,dashboard,simulate,config,daemon-rs,install}
                         Available commands
     login               Login to a captive portal
     probe               Test connectivity
@@ -24,6 +24,7 @@ positional arguments:
     simulate            Run portal simulator for testing
     config              Manage configuration
     daemon-rs           Launch Rust networking daemon
+    install             Install the background systemd service
 
 options:
   -h, --help            show this help message and exit

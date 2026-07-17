@@ -241,11 +241,12 @@ class TestCmdDaemon(unittest.TestCase):
     def test_daemon_cli_boots(self):
         """Regression test to ensure DaemonRunner API changes don't break CLI."""
         import subprocess
+
         # Run subprocess and assert it completes without crashing due to constructor errors
         result = subprocess.run(
             ["captivity", "daemon", "--network", "T-VIT", "--once"],
             capture_output=True,
-            text=True
+            text=True,
         )
         self.assertEqual(result.returncode, 0, f"Daemon CLI crashed: {result.stderr}")
         self.assertNotIn("unexpected keyword argument", result.stderr)

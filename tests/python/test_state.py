@@ -107,7 +107,9 @@ class TestConnectionStateMachine(unittest.TestCase):
         self.sm.transition(ConnectionState.CONNECTED)
         self.assertEqual(self.sm.state, ConnectionState.CONNECTED)
         # Verify no ERROR transitions
-        self.assertNotIn((ConnectionState.PORTAL, ConnectionState.ERROR), self.transitions)
+        self.assertNotIn(
+            (ConnectionState.PORTAL, ConnectionState.ERROR), self.transitions
+        )
 
 
 if __name__ == "__main__":

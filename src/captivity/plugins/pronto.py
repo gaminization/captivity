@@ -42,7 +42,7 @@ class ProntoPlugin(CaptivePortalPlugin):
         password: str,
     ) -> bool:
         """Login using deterministic Pronto Networks form format."""
-        
+
         # Hardcoded endpoint matching v0.1 bash script
         LOGIN_URL = "http://phc.prontonetworks.com/cgi-bin/authlogin"
         REDIRECT = "http://detectportal.firefox.com/canonical.html"
@@ -62,37 +62,41 @@ class ProntoPlugin(CaptivePortalPlugin):
                 "serviceName": "ProntoAuthentication",
                 "Submit22": "Login",
             }
-            
+
             logger.info("Submitting Pronto POST payload to %s", LOGIN_URL)
             post_response = session.post(
-                LOGIN_URL, 
-                data=payload, 
-                allow_redirects=True, 
-                timeout=15
+                LOGIN_URL, data=payload, allow_redirects=True, timeout=15
             )
-            
+
             logger.debug("Pronto POST response: HTTP %d", post_response.status_code)
 
             # 3. STEP=VERIFY_CONNECTIVITY
             logger.debug("STEP=VERIFY_CONNECTIVITY")
             logger.info("Verifying connectivity post-login...")
             verify_response = session.get(REDIRECT, timeout=5, allow_redirects=False)
-            
+
             # Check Firefox captive portal success condition
-            if verify_response.status_code == 200 and "success" in verify_response.text.lower():
+            if (
+                verify_response.status_code == 200
+                and "success" in verify_response.text.lower()
+            ):
                 logger.info("Pronto login successful: Firefox canonical verified")
                 return True
-                
+
             # Fallback to standard 204 check
-            probe_204 = session.get("http://clients3.google.com/generate_204", timeout=5, allow_redirects=False)
+            probe_204 = session.get(
+                "http://clients3.google.com/generate_204",
+                timeout=5,
+                allow_redirects=False,
+            )
             if probe_204.status_code == 204:
                 logger.info("Pronto login successful: HTTP 204 verified")
                 return True
-                
+
             logger.error(
-                "Pronto login failed: Verification returned HTTP %d (canonical) / HTTP %d (204)", 
+                "Pronto login failed: Verification returned HTTP %d (canonical) / HTTP %d (204)",
                 verify_response.status_code,
-                probe_204.status_code
+                probe_204.status_code,
             )
             return False
 

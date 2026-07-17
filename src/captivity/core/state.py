@@ -55,7 +55,7 @@ VALID_TRANSITIONS: dict[ConnectionState, set[ConnectionState]] = {
         ConnectionState.WAIT_USER,
         ConnectionState.AUTHENTICATING,
         ConnectionState.ERROR,
-        ConnectionState.CONNECTED, # Probe truth override
+        ConnectionState.CONNECTED,  # Probe truth override
     },
     ConnectionState.WAIT_USER: {
         ConnectionState.CONNECTED,
@@ -63,7 +63,7 @@ VALID_TRANSITIONS: dict[ConnectionState, set[ConnectionState]] = {
         ConnectionState.PORTAL,  # Cooldown expired, check again
     },
     ConnectionState.AUTHENTICATING: {
-        ConnectionState.CONNECTED, # Probe truth override
+        ConnectionState.CONNECTED,  # Probe truth override
         ConnectionState.RETRY,
         ConnectionState.ERROR,
         ConnectionState.WAIT_USER,  # Added for CAPTCHA fallback during login
@@ -74,11 +74,11 @@ VALID_TRANSITIONS: dict[ConnectionState, set[ConnectionState]] = {
     ConnectionState.RETRY: {
         ConnectionState.PROBING,
         ConnectionState.AUTHENTICATING,
-        ConnectionState.CONNECTED, # Probe truth override
+        ConnectionState.CONNECTED,  # Probe truth override
     },
     ConnectionState.ERROR: {
         ConnectionState.RETRY,
-        ConnectionState.CONNECTED, # Probe truth override
+        ConnectionState.CONNECTED,  # Probe truth override
     },
 }
 

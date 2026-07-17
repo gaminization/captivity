@@ -24,7 +24,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
-import os
 import stat
 from pathlib import Path
 from typing import Optional
@@ -44,6 +43,7 @@ _CRED_FILE = _CRED_DIR / "credentials.enc"
 # ---------------------------------------------------------------------------
 # Internal helpers — file-based encrypted fallback
 # ---------------------------------------------------------------------------
+
 
 def _derive_key() -> bytes:
     """Derive a 256-bit key from a machine-local secret.
@@ -154,15 +154,16 @@ def _file_delete(network: str) -> None:
 # Keyring helpers
 # ---------------------------------------------------------------------------
 
+
 def _keyring_available() -> bool:
     """Return True if the OS keyring is reachable from this process."""
     try:
         import keyring
+
         kr = keyring.get_keyring()
         # Chainer means we need to check the first live backend
         name = type(kr).__name__
         if name == "ChainerBackend":
-            from keyring.backends.chainer import ChainerBackend
             for b in kr.backends:
                 bname = type(b).__name__
                 # These require a D-Bus session
@@ -199,6 +200,7 @@ def _keyring_available() -> bool:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 class CredentialError(Exception):
     """Raised when credential operations fail."""
 
@@ -211,6 +213,7 @@ def store(network: str, username: str, password: str) -> None:
     # Try keyring
     try:
         import keyring
+
         if _keyring_available():
             keyring.set_password(SERVICE_NAME, f"{network}-username", username)
             keyring.set_password(SERVICE_NAME, f"{network}-password", password)
@@ -238,13 +241,18 @@ def retrieve(network: str) -> tuple[str, str]:
     # --- Keyring path ---
     try:
         import keyring
+
         if _keyring_available():
             username = keyring.get_password(SERVICE_NAME, f"{network}-username")
             password = keyring.get_password(SERVICE_NAME, f"{network}-password")
             if username and password:
-                logger.debug("CREDENTIAL_RESULT backend=keyring found=True network='%s'", network)
+                logger.debug(
+                    "CREDENTIAL_RESULT backend=keyring found=True network='%s'", network
+                )
                 return username, password
-            logger.debug("CREDENTIAL_RESULT backend=keyring found=False network='%s'", network)
+            logger.debug(
+                "CREDENTIAL_RESULT backend=keyring found=False network='%s'", network
+            )
         else:
             logger.info(
                 "CREDENTIAL_KEYRING_UNAVAILABLE: D-Bus session not reachable. "
@@ -275,6 +283,7 @@ def delete(network: str) -> None:
     # Keyring
     try:
         import keyring
+
         if _keyring_available():
             for field in ("username", "password"):
                 try:

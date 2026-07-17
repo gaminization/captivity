@@ -41,37 +41,41 @@ class TestProntoPlugin(unittest.TestCase):
     def test_pronto_login_flow_regression(self):
         """Regression test to prevent over-engineering: verifies exact deterministic flow."""
         session = MagicMock()
-        
+
         # 1. Trigger portal (GET)
         get_response = MagicMock()
         get_response.status_code = 200
-        
+
         # 2. Submit login (POST)
         post_response = MagicMock()
         post_response.status_code = 200
-        
+
         # 3. Verify connectivity (GET)
         verify_response = MagicMock()
         verify_response.status_code = 200
         verify_response.text = "success"
-        
+
         session.get.side_effect = [get_response, verify_response]
         session.post.return_value = post_response
 
         # Execute
-        result = self.plugin.login(session, "http://phc.prontonetworks.com", "user", "pass")
+        result = self.plugin.login(
+            session, "http://phc.prontonetworks.com", "user", "pass"
+        )
         self.assertTrue(result)
-        
+
         # Assert Step 1: Trigger
         trigger_call = session.get.call_args_list[0]
         self.assertEqual(
             trigger_call[0][0],
-            "http://phc.prontonetworks.com/cgi-bin/authlogin?URI=http://detectportal.firefox.com/canonical.html"
+            "http://phc.prontonetworks.com/cgi-bin/authlogin?URI=http://detectportal.firefox.com/canonical.html",
         )
-        
+
         # Assert Step 2: Login Submit
         post_call = session.post.call_args_list[0]
-        self.assertEqual(post_call[0][0], "http://phc.prontonetworks.com/cgi-bin/authlogin")
+        self.assertEqual(
+            post_call[0][0], "http://phc.prontonetworks.com/cgi-bin/authlogin"
+        )
         self.assertEqual(
             post_call[1]["data"],
             {
@@ -79,12 +83,14 @@ class TestProntoPlugin(unittest.TestCase):
                 "password": "pass",
                 "serviceName": "ProntoAuthentication",
                 "Submit22": "Login",
-            }
+            },
         )
-        
+
         # Assert Step 3: Verify
         verify_call = session.get.call_args_list[1]
-        self.assertEqual(verify_call[0][0], "http://detectportal.firefox.com/canonical.html")
+        self.assertEqual(
+            verify_call[0][0], "http://detectportal.firefox.com/canonical.html"
+        )
 
     def test_login_failure(self):
         session = MagicMock()
