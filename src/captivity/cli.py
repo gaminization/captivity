@@ -127,7 +127,7 @@ def cmd_creds(args: argparse.Namespace) -> int:
         elif args.creds_action == "retrieve":
             username, password = retrieve(args.network)
             print(f"Username: {username}")
-            print(f"Password: {'*' * len(password)}")
+            print("Password: ********")
 
         elif args.creds_action == "delete":
             delete(args.network)
