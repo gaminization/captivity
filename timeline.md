@@ -1,29 +1,41 @@
-# Captivity — Development Timeline
+# 🗺️ Captivity — Development Timeline
 
-## Version Roadmap
+## 🎯 Version Roadmap
 
-| Version | Milestone                          | Status      |
-|---------|-------------------------------------|-------------|
-| v0.1    | Initial login script               | ✅ Released  |
-| v0.2    | Secure credential storage          | ✅ Released  |
-| v0.3    | Automatic reconnect loop           | ✅ Released  |
-| v0.4    | NetworkManager dispatcher          | ✅ Released  |
-| v0.5    | Systemd daemon service             | ✅ Released  |
-| v0.6    | Python core rewrite                | ✅ Released  |
-| v0.7    | Dynamic portal login parsing       | ✅ Released  |
-| v0.8    | Plugin architecture                | ✅ Released  |
-| v0.9    | NetworkManager DBus events         | ✅ Released  |
-| v1.0    | Stable captive portal client       | ✅ Released  |
-| v1.1    | Tray UI + notifications            | ✅ Released  |
-| v1.2    | Automatic network learning         | ✅ Released  |
-| v1.3    | Telemetry + bandwidth monitoring   | ✅ Released  |
-| v1.4    | Local web dashboard                | ✅ Released  |
-| v1.5    | Smart retry system                 | ✅ Released  |
-| v1.6    | Connection state machine            | ✅ Released  |
-| v1.7    | Portal simulator                   | ✅ Released  |
-| v1.8    | Plugin marketplace                 | ✅ Released  |
-| v1.9    | Configuration system               | ✅ Released  |
-| v2.0    | Rust networking daemon core        | ✅ Released  |
+```mermaid
+gantt
+    title Captivity Development Journey
+    dateFormat  YYYY-MM-DD
+    axisFormat  v%m.%d
+    
+    section Shell Phase
+    v0.1 Initial script :done, 2026-01-01, 1w
+    v0.2 Credentials    :done, 2026-01-08, 1w
+    v0.3 Reconnect loop :done, 2026-01-15, 1w
+    v0.4 NM Dispatcher  :done, 2026-01-22, 1w
+    v0.5 Systemd daemon :done, 2026-01-29, 1w
+    
+    section Python Core
+    v0.6 Python rewrite :done, 2026-02-05, 1w
+    v0.7 Dynamic parser :done, 2026-02-12, 1w
+    v0.8 Plugin arch    :done, 2026-02-19, 1w
+    v0.9 DBus events    :done, 2026-02-26, 1w
+    v1.0 Stable Release :done, 2026-03-05, 1w
+    
+    section Features
+    v1.1 Tray UI        :done, 2026-03-12, 1w
+    v1.2 Network learn  :done, 2026-03-19, 1w
+    v1.3 Telemetry      :done, 2026-03-26, 1w
+    v1.4 Dashboard      :done, 2026-04-02, 1w
+    v1.5 Smart retry    :done, 2026-04-09, 1w
+    v1.6 State machine  :done, 2026-04-16, 1w
+    v1.7 Simulator      :done, 2026-04-23, 1w
+    v1.8 Plugins        :done, 2026-04-30, 1w
+    v1.9 Configuration  :done, 2026-05-07, 1w
+    
+    section Rust Core
+    v2.0 Rust daemon    :done, 2026-05-14, 1w
+```
 
 ## Release History
 

@@ -1,6 +1,7 @@
 # Captivity: Future Architecture Blueprint
 
-Captivity has evolved from a CLI tool into an autonomous, self-healing network daemon. To reach the final frontier of production-grade deployment, the architecture must evolve closer to the kernel and integrate distributed intelligence.
+> [!NOTE]
+> Captivity has evolved from a CLI tool into an autonomous, self-healing network daemon. To reach the final frontier of production-grade deployment, the architecture must evolve closer to the kernel and integrate distributed intelligence.
 
 ## 1. OS-Level Integration (NetworkManager Plugin)
 
@@ -24,6 +25,31 @@ To completely eliminate DBus overhead and polling dependencies, the daemon can s
 
 Captive portals change their HTML and CAPTCHA strategies frequently. A static plugin architecture will eventually bit-rot.
 
+```mermaid
+flowchart LR
+    subgraph Edge Clients
+        C1[Captivity Daemon]
+        C2[Captivity Daemon]
+    end
+    
+    subgraph Intelligence Core
+        API[Telemetry API]
+        ML[ML Detection Engine]
+        DB[(Portal DB)]
+    end
+    
+    C1 -->|Anonymized Fingerprint| API
+    C2 -->|Anonymized Fingerprint| API
+    API --> ML
+    ML --> DB
+    DB -.->|New Strategies| C1
+    DB -.->|New Strategies| C2
+    
+    classDef default fill:#1f2937,stroke:#3b82f6,stroke-width:2px,color:#f9fafb;
+    classDef server fill:#6b21a8,stroke:#a855f7,stroke-width:2px,color:#f9fafb;
+    class API,ML,DB server
+```
+
 **Architecture:**
 - **Telemetry Collection:** When a new portal is encountered, anonymized fingerprints (redirect URL pattern, HTML structure snippet, CAPTCHA provider) are sent to a central intelligence server.
 - **Machine Learning Detection:** The server runs clustering algorithms to classify portal vendors (e.g., Cisco ISE, Aruba ClearPass, custom airport portals).
@@ -38,6 +64,8 @@ The current TLA+ specification (`formal/Captivity.tla`) proves the state machine
 
 ## 5. Chaos Lab Infrastructure
 
-The current `chaos_lab` uses `tc` (Traffic Control) and `iptables` DNAT.
-- **Future:** Package this as a standalone `pytest-chaos-wifi` plugin.
-- Allows developers of *any* network software to easily simulate adversarial airport Wi-Fi conditions during their test suites.
+> [!TIP]
+> The current `chaos_lab` uses `tc` (Traffic Control) and `iptables` DNAT.
+> **Future:** Package this as a standalone `pytest-chaos-wifi` plugin.
+
+Allows developers of *any* network software to easily simulate adversarial airport Wi-Fi conditions during their test suites.

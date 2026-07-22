@@ -1,34 +1,47 @@
-# Captivity CLI Reference
+# 💻 Captivity CLI Reference
 
-```text
-usage: captivity [-h] [--version] [-v] [-q]
-                 {login,probe,status,daemon,creds,plugins,networks,tray,learn,stats,dashboard,simulate,config,daemon-rs,install}
-                 ...
+The `captivity` CLI provides a powerful interface to manage captive portal logins, plugins, and background services.
 
-Captivity — Autonomous captive portal login client
+> [!TIP]
+> Use `captivity [command] --help` for detailed information on a specific subcommand.
 
-positional arguments:
-  {login,probe,status,daemon,creds,plugins,networks,tray,learn,stats,dashboard,simulate,config,daemon-rs,install}
-                        Available commands
-    login               Login to a captive portal
-    probe               Test connectivity
-    status              Show connection status
-    daemon              Run reconnect daemon
-    creds               Manage credentials
-    plugins             Manage plugins and marketplace
-    networks            List known networks
-    tray                Launch system tray icon
-    learn               Manage learned networks
-    stats               Show connection statistics
-    dashboard           Launch web dashboard
-    simulate            Run portal simulator for testing
-    config              Manage configuration
-    daemon-rs           Launch Rust networking daemon
-    install             Install the background systemd service
+## 🛠️ Commands
 
-options:
-  -h, --help            show this help message and exit
-  --version             show program's version number and exit
-  -v, --verbose         Enable debug output
-  -q, --quiet           Suppress output except errors
+| Command | Description |
+|---|---|
+| `login` | Login to a captive portal |
+| `probe` | Test connectivity |
+| `status` | Show connection status |
+| `daemon` | Run reconnect daemon |
+| `creds` | Manage credentials |
+| `plugins` | Manage plugins and marketplace |
+| `networks` | List known networks |
+| `tray` | Launch system tray icon |
+| `learn` | Manage learned networks |
+| `stats` | Show connection statistics |
+| `dashboard` | Launch web dashboard |
+| `simulate` | Run portal simulator for testing |
+| `config` | Manage configuration |
+| `daemon-rs` | Launch Rust networking daemon |
+| `install` | Install the background systemd service |
+
+## ⚙️ Global Options
+
+| Option | Description |
+|---|---|
+| `-h, --help` | Show this help message and exit |
+| `--version` | Show program's version number and exit |
+| `-v, --verbose` | Enable debug output |
+| `-q, --quiet` | Suppress output except errors |
+
+## 📚 Examples
+
+### Start Background Daemon
+```bash
+captivity daemon --network "Airport WiFi"
+```
+
+### Check Connectivity
+```bash
+captivity status
 ```

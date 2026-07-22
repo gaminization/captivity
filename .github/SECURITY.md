@@ -6,9 +6,10 @@ If you discover a security vulnerability in Captivity, please report it responsi
 
 ### How to Report
 
-1. **Do NOT open a public issue.** Security vulnerabilities must be reported privately.
-2. Use [GitHub Security Advisories](https://github.com/gaminization/captivity/security/advisories/new) to submit a private report.
-3. Alternatively, email: **garvarora@gmail.com**
+> [!WARNING]
+> 1. **Do NOT open a public issue.** Security vulnerabilities must be reported privately.
+> 2. Use [GitHub Security Advisories](https://github.com/gaminization/captivity/security/advisories/new) to submit a private report.
+> 3. Alternatively, email: **garvarora@gmail.com**
 
 ### What to Include
 

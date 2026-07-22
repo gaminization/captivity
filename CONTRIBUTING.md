@@ -30,8 +30,23 @@ Thank you for your interest in contributing to Captivity!
 
 ### Workflow
 
-```text
-feature/your-feature  →  dev  →  release/vX.X  →  main
+```mermaid
+gitGraph
+    commit
+    branch dev
+    checkout dev
+    commit
+    branch feature/your-feature
+    checkout feature/your-feature
+    commit
+    commit
+    checkout dev
+    merge feature/your-feature
+    branch release/vX.X
+    checkout release/vX.X
+    commit
+    checkout main
+    merge release/vX.X tag: "vX.X"
 ```
 
 1. Create a feature branch from `dev`
@@ -64,10 +79,11 @@ Example: `release: v1.5 Smart retry system`
 
 ### Rules
 
-- Use **lowercase** for the type prefix
-- Use **imperative mood** in the description (e.g., "add", not "added")
-- Keep the subject line under 72 characters
-- Reference issue numbers where applicable: `feat: add retry (#42)`
+> [!IMPORTANT]
+> - Use **lowercase** for the type prefix
+> - Use **imperative mood** in the description (e.g., "add", not "added")
+> - Keep the subject line under 72 characters
+> - Reference issue numbers where applicable: `feat: add retry (#42)`
 
 ## Development Guidelines
 

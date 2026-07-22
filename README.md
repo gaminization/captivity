@@ -1,10 +1,10 @@
-<p align="center">
-  <h1 align="center">Captivity</h1>
-  <p align="center">
+<div align="center">
+  <h1>🚀 Captivity</h1>
+  <p>
     <strong>Autonomous captive portal login client for WiFi networks.</strong><br/>
-    Connect → Authenticate → Online. Instantly.
+    <i>Connect → Authenticate → Online. Instantly.</i>
   </p>
-</p>
+</div>
 
 <p align="center">
   <a href="https://github.com/gaminization/captivity/releases"><img src="https://img.shields.io/badge/version-3.0.0-blue?style=flat-square" alt="Version"></a>
@@ -38,14 +38,14 @@ No browser. No clicking. No waiting. Your device connects to WiFi, Captivity det
 
 ## Features
 
-### Core
+### 🔌 Core
 
 - **Automatic portal detection** — HTTP 204 probing with redirect analysis
 - **Plugin-based login** — Modular handlers for any portal type
 - **Credential vault** — Encrypted storage with `keyring` integration
 - **Network learning** — Fingerprints portals, remembers successful strategies
 
-### Performance
+### ⚡ Performance
 
 | Metric | Value |
 |--------|-------|
@@ -55,21 +55,21 @@ No browser. No clicking. No waiting. Your device connects to WiFi, Captivity det
 | Memory (Rust daemon) | < 10 MB |
 | Background polling | configurable (default 30s) |
 
-### System Integration
+### 🛠️ System Integration
 
 - **systemd service** — runs as a background daemon
 - **D-Bus monitoring** — reacts to NetworkManager events
 - **System tray** — GTK status icon with notifications
 - **Web dashboard** — real-time stats at `localhost:8787`
 
-### Security
+### 🔒 Security
 
 - **CodeQL scanning** — automated on every push
 - **No plaintext credentials** — keyring-backed storage
 - **systemd hardening** — `NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp`
 - **Sandboxed daemon** — read-only home, strict filesystem access
 
-### Multi-Network
+### 🌐 Multi-Network
 
 - **Network profiles** — per-SSID portal fingerprints and strategies
 - **Plugin marketplace** — community-contributed portal handlers
@@ -79,12 +79,16 @@ No browser. No clicking. No waiting. Your device connects to WiFi, Captivity det
 
 ## How It Works
 
-```
-┌──────────┐     ┌───────────────┐     ┌──────────┐     ┌──────────┐
-│  detect  │────▶│  parse portal │────▶│  login   │────▶│  verify  │
-└──────────┘     └───────────────┘     └──────────┘     └──────────┘
-  HTTP 204         HTML analysis        Plugin match       Re-probe
-  probe            form extraction      auto-submit        confirm 204
+```mermaid
+flowchart LR
+    A[Detect] -->|HTTP 204\nprobe| B[Parse portal]
+    B -->|HTML analysis\nform extraction| C[Login]
+    C -->|Plugin match\nauto-submit| D[Verify]
+    D -->|Re-probe\nconfirm 204| E(((Online)))
+    
+    classDef default fill:#1f2937,stroke:#3b82f6,stroke-width:2px,color:#f9fafb;
+    classDef success fill:#065f46,stroke:#10b981,stroke-width:2px,color:#f9fafb;
+    class E success
 ```
 
 1. **Detect** — Sends a lightweight HTTP request to `clients3.google.com/generate_204`. A `204` means connected. A redirect means captive portal.
@@ -92,7 +96,8 @@ No browser. No clicking. No waiting. Your device connects to WiFi, Captivity det
 3. **Login** — Matches the portal to a plugin (or uses the generic handler), submits credentials.
 4. **Verify** — Re-probes to confirm internet access. Caches the result for future connections.
 
-The daemon runs this pipeline continuously, reacting to network changes via D-Bus and re-authenticating when sessions expire.
+> [!NOTE]
+> The daemon runs this pipeline continuously, reacting to network changes via D-Bus and re-authenticating when sessions expire.
 
 ---
 
@@ -107,7 +112,8 @@ pip install captivity-cli
 captivity install
 ```
 
-*(Note: If you use `pipx` to install python apps, you must use `pipx install --system-site-packages captivity-cli` so the system tray can access the GTK libraries installed via apt).*
+> [!WARNING]
+> **If you use `pipx` to install python apps**, you must use `pipx install --system-site-packages captivity-cli` so the system tray can access the GTK libraries installed via `apt` or `pacman`.
 
 ### Homebrew
 
@@ -182,7 +188,8 @@ captivity config init
 
 Config file location: `~/.config/captivity/config.toml`
 
-Priority: **Environment variables** > **Config file** > **Built-in defaults**
+> [!TIP]
+> **Priority:** Environment variables > Config file > Built-in defaults
 
 Environment override format: `CAPTIVITY_SECTION_KEY` (e.g., `CAPTIVITY_PROBE_TIMEOUT=3`)
 
@@ -344,29 +351,39 @@ Captivity fingerprints portal pages and stores successful login strategies per n
 
 ## Architecture
 
-```
-                    ┌─────────────────────────────────────────────┐
-                    │              captivity daemon               │
-                    │                                             │
-  NetworkManager ──▶│  D-Bus Monitor ──▶ Event Bus ──▶ Plugins   │
-  (D-Bus events)    │       │                │                    │
-                    │       ▼                ▼                    │
-                    │  Network Monitor    Session Tracker         │
-                    │  (probe loop)       (stats, bandwidth)     │
-                    └──────────┬──────────────────────────────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │   Rust Daemon (v3)  │
-                    │   probe · monitor   │◀── TCP Socket IPC (127.0.0.1:8788)
-                    │   ipc · events      │
-                    └─────────────────────┘
+```mermaid
+flowchart TD
+    NM[NetworkManager\nD-Bus events] -->|Events| DB[D-Bus Monitor]
+    DB --> EB[Event Bus]
+    EB --> P[Plugins]
+    EB --> NM2[Network Monitor\nprobe loop]
+    EB --> ST[Session Tracker\nstats, bandwidth]
+    
+    subgraph Python Daemon
+        DB
+        EB
+        P
+        NM2
+        ST
+    end
+    
+    subgraph Rust Daemon
+        RD[probe · monitor\nipc · events]
+    end
+    
+    NM2 -.->|TCP Socket IPC 127.0.0.1:8788| RD
+    RD -.->|TCP Socket IPC| NM2
+    
+    classDef default fill:#1f2937,stroke:#3b82f6,stroke-width:2px,color:#f9fafb;
+    classDef rust fill:#7c2d12,stroke:#ea580c,stroke-width:2px,color:#f9fafb;
+    class RD rust
 ```
 
 **Python** handles: CLI, plugins, UI, dashboard, configuration, credentials.
-
 **Rust** handles: low-level networking, high-frequency probing, event dispatch.
 
-Communication via local TCP socket with newline-delimited JSON.
+> [!NOTE]
+> Communication between Python and Rust occurs via a local TCP socket using newline-delimited JSON.
 
 ---
 

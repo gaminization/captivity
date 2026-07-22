@@ -6,23 +6,38 @@ Captivity is an autonomous captive portal login client. The architecture is desi
 
 ## Current Architecture (v0.2–v0.5: Shell Phase)
 
-```
-┌─────────────────────────────────────────────────┐
-│                  User / System                   │
-├──────────┬──────────┬───────────┬───────────────┤
-│  Manual  │    NM    │  Systemd  │    Sleep      │
-│  CLI     │Dispatcher│  Service  │   Resume      │
-├──────────┴──────────┴───────────┴───────────────┤
-│              Reconnect Loop                      │
-│         (connectivity probe + retry)             │
-├─────────────────────────────────────────────────┤
-│              Login Engine                        │
-│         (curl-based portal login)                │
-├──────────────────┬──────────────────────────────┤
-│   Credential     │     Portal Config             │
-│   Manager        │     (URL, params)             │
-│  (secret-tool)   │                               │
-└──────────────────┴──────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph User / System
+        M[Manual CLI]
+        NM[NM Dispatcher]
+        SS[Systemd Service]
+        SR[Sleep/Resume]
+    end
+    
+    subgraph Core Engine
+        RL[Reconnect Loop\nconnectivity probe + retry]
+        LE[Login Engine\ncurl-based portal login]
+    end
+    
+    subgraph Data
+        CM[Credential Manager\nsecret-tool]
+        PC[Portal Config\nURL, params]
+    end
+    
+    M --> RL
+    NM --> RL
+    SS --> RL
+    SR --> RL
+    
+    RL --> LE
+    
+    LE --> CM
+    LE --> PC
+    
+    classDef default fill:#1f2937,stroke:#3b82f6,stroke-width:2px,color:#f9fafb;
+    classDef system fill:#047857,stroke:#10b981,stroke-width:2px,color:#f9fafb;
+    class M,NM,SS,SR system
 ```
 
 ## Module Responsibilities

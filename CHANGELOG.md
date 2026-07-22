@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v3.2.0] — 2026-05-13
 
-### Added
+### ✨ Added
 - **Dual-Backend Credential Store:** `credentials.py` now probes keyring availability at runtime before use. When the OS keyring (GNOME SecretService / KWallet) is unreachable — e.g. inside a system service without a D-Bus session — it transparently falls back to an AES-256-CBC encrypted file at `~/.local/share/captivity/credentials.enc` with a PBKDF2 key derived from `/etc/machine-id`. No plaintext credentials ever touch disk.
 - **User Systemd Service (`captivity-user.service`):** New `systemd/captivity-user.service` runs the daemon inside the user login session (`systemctl --user`), giving it full access to GNOME keyring, D-Bus, NetworkManager events, and display variables without any privilege escalation.
 - **One-Command Installer (`systemd/install-service.sh`):** Deploys the user service, stops the stale system service, enables `loginctl linger`, installs the tray autostart `.desktop` entry, and prints NM dispatcher instructions.
@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Boot Reconciliation Integration Tests (`test_boot_reconciliation.py`):** 12 new tests covering startup-window constants, late-WiFi convergence, no-event convergence, and NM-event-driven login.
 - **Startup Reconciliation Window:** Daemon probes every 5 s for the first 60 s after start, regardless of event delivery, to cover boot-time WiFi late-association.
 
-### Fixed
+### 🔨 Fixed
 - **Root cause of systemd auto-login failure:** System service had no access to the user D-Bus session bus, causing `keyring.get_password()` to throw silently. Migration to user service + credential file fallback resolves this permanently.
 - **Login error suppression:** `exc_info=True` added to `Login encountered an error` so the full traceback now appears in journald instead of being absorbed into a silent `extra` dict field.
 - **Stale system service:** `/etc/systemd/system/captivity.service` was using the old `--network T-VIT` hardcoded argument and stale `After=network-online.target` ordering; install script now cleanly replaces it.
@@ -26,14 +26,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v3.1.0] — 2026-05-06
 
-### Added
+### ✨ Added
 - **Startup Reconciliation Window:** `STARTUP_RECONCILIATION_WINDOW = 60 s`, `STARTUP_RECONCILIATION_INTERVAL = 5 s` — daemon probes aggressively on startup independent of NetworkManager event delivery, guaranteeing convergence even when WiFi associates late during boot.
 - **Time-based Steady-State Reconciliation:** After the startup window expires, any `INIT / ERROR / RETRY` state with no events for 30 s triggers a forced probe. The daemon can never idle forever.
 - **Boot Autonomy Integration Test (`test_boot_autonomy.py`):** Asserts daemon reaches `CONNECTED` from a portal without any manual CLI commands, using `nmcli`-based SSID auto-detection.
 - **SSID Auto-Detection:** `_handle_portal()` now calls `get_active_wifi_ssid()` when no `--network` flag is supplied, removing the last hardcoded flag from the service file.
 - **Structured Startup Logs:** `STARTUP_RECONCILIATION active=True elapsed_s=N forcing_probe=True` log lines emitted on every window probe.
 
-### Fixed
+### 🔨 Fixed
 - **`ILLEGAL TRANSITION: PORTAL → CONNECTED` error:** State machine now correctly permits `CONNECTED` as a target from any non-terminal state. Probe truth (HTTP 204 verified) overrides transition rigidity — the core invariant.
 - **Deterministic Pronto Networks plugin:** Removed brittle `BeautifulSoup` form-parsing; replaced with hardcoded `POST` to `phc.prontonetworks.com/cgi-bin/authlogin` matching the original v0.1 bash flow. Verification uses both Firefox canonical and Google 204 probes.
 - **Systemd `226/NAMESPACE` failure:** Removed incorrect root-local path (`/root/.local/bin`) from service; corrected to `/home/garvarora/.local/bin/captivity`. Added `After=NetworkManager.service`, `RestartSec=3`, expanded `StartLimitBurst=10`.
@@ -44,7 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v3.0.0] — 2026-05-06
 
-### Added
+### ✨ Added
 - **Cross-Platform TCP IPC:** Migrated the daemon IPC mechanism from Unix Domain Sockets to a local TCP socket (`127.0.0.1:8788`), ensuring full cross-platform compatibility across Windows, Linux, and macOS.
 - **Windows Service Stabilization:** Updated the Windows service daemon wrapper to fully support the new TCP-based IPC and lifecycle events.
 - **Enhanced Test Coverage:** Increased test suite strictness and coverage, achieving 100% test coverage for the plugin marketplace and Windows service stubs via `unittest.mock`. Overall project coverage now rigorously enforced at **>85%**.
@@ -52,7 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v2.8.0] — 2026-05-05
 
-### Added
+### ✨ Added
 - **Android Companion (PWA):** The web dashboard now includes a Web App Manifest and Service Worker, making it fully installable on Android devices as a Progressive Web App.
 - **Remote Monitoring:** Added `--remote` and `--host` flags to the `captivity dashboard` CLI command to allow binding to external interfaces.
 - **Dashboard Authentication:** Added `--password` flag to the dashboard CLI. When enabled, all API endpoints and the web UI require a bearer token or URL parameter for secure remote access.
@@ -61,7 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v2.7.0] — 2026-05-05
 
-### Added
+### ✨ Added
 - **Async Rust Daemon:** Migrated the Rust daemon (`captivity-daemon`) to a fully asynchronous architecture using the `tokio` runtime.
 - **Async Networking:** Replaced synchronous HTTP probes (`ureq`) with non-blocking async probes (`reqwest`).
 - **Concurrent IPC:** Rewrote the Unix domain socket IPC server to support truly concurrent connections with `tokio::net::UnixListener` and `tokio::spawn` tasks.
@@ -71,7 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v2.6.0] — 2026-05-05
 
-### Added
+### ✨ Added
 - **WPA Enterprise Detection:** New `wifi.py` module detects 802.1X networks via `nmcli` parsing (`WifiSecurity` enum: `OPEN`, `WPA_PSK`, `WPA_ENTERPRISE`, `UNKNOWN`). Enterprise networks short-circuit `do_login()` to prevent incorrect captive portal login attempts (e.g. eduroam, corporate WPA2-EAP).
 - **Portal Vendor Heuristics:** `classify_portal()` in `fingerprint.py` matches portal HTML against 7 vendor signature patterns (Cisco/Meraki, Aruba/ClearPass, Fortinet, MikroTik, UniFi, CoovaChilli, Pronto). `PortalVendor` enum stored in `NetworkFingerprint.vendor` for diagnostics.
 - **Probe Confidence Scoring:** `ProbeResult.confidence` (0.0–1.0) calculated from multi-endpoint probe agreement. Logged alongside probe results for observability.
@@ -83,21 +83,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v2.5.0] — 2026-05-05
 
-### Added
+### ✨ Added
 - **Plugin Lifecycle Hooks:** `CaptivePortalPlugin` base class now provides optional `on_load()`, `on_unload()`, and `validate()` hooks. Plugins that return `False` from `validate()` are automatically skipped during discovery. All hooks are backward-compatible no-ops by default.
 - **User Plugin Directory:** `discover_plugins()` now scans `~/.local/share/captivity/plugins/*.py` for user-authored plugin classes (layer 3, after built-in and entry_point plugins).
 - **Comprehensive CLI Tests:** New `test_cli_commands.py` covering all 14 CLI subcommands and argument parsing (83 tests).
 - **Win Service Tests:** New `test_win_service.py` for non-Windows stub validation.
 - **Plugin Coverage:** Extended `test_plugins.py` with lifecycle hook, validate-skip, generic login, and user directory scanning tests.
 
-### Improved
+### 🚀 Improved
 - **Coverage Enforcement:** CI threshold raised from 70% → 80%. Current coverage: **80%+** (532 tests).
 
 ---
 
 ## [v2.4.0] — 2026-04-29
 
-### Added
+### ✨ Added
 - **Cross-Platform Network Monitor:** `network_monitor.py` now dispatches to platform-specific strategies — Linux uses `nmcli`/`dbus-monitor` (unchanged), while macOS and Windows use a new HTTP polling fallback (`_run_polling_monitor`) that detects connectivity, portals, and disconnections via `generate_204` probes.
 - **Platform-Aware SSID Detection:** `get_active_wifi_ssid()` now supports macOS (`airport -I`) and Windows (`netsh wlan show interfaces`) in addition to Linux (`nmcli`).
 - **macOS launchd Integration:** Added `launchd/com.gaminization.captivity.plist` and `scripts/install-launchd.sh` for one-command daemon installation on macOS.
@@ -108,7 +108,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v2.3.0] — 2026-04-29
 
-### Added
+### ✨ Added
 - **Structured JSON Logging:** A new `JSONFormatter` in `captivity.utils.logging` emits fully structured JSON log events for production daemon environments, configurable via `CAPTIVITY_DAEMON_LOG_FORMAT=json` or `config.toml`.
 - **Fault Recovery Hardening:** The daemon (`runner.py`) now includes a `FaultTracker` that implements exponential backoff during crash loops and gracefully terminates the process (allowing `systemd` to cleanly restart it) if a fatal threshold is reached (e.g., 5 crashes in 5 minutes).
 - **Structured Diagnostics:** Key daemon lifecycle events (e.g., probe complete, network event received) now utilize Python's `extra={}` log kwargs to emit structured key-value data directly into the JSON log stream.
@@ -117,7 +117,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v2.2.0] — 2026-04-28
 
-### Added
+### ✨ Added
 
 - `keyring` integration for cross-platform secure credential management (replaced `secret-tool`)
 - Strict development dependency locking via `pip-tools` (`requirements.lock`)
@@ -127,7 +127,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Enforced `black` and `ruff` formatting/linting via `pre-commit`
 - CI/CD workflow hardening with strict coverage threshold and CLI execution validation
 
-### Changed
+### 🔄 Changed
 
 - Transitioned credential management unit tests to use `unittest.mock` against the `keyring` API
 - Refactored `captivity.cli` to be executable as a standalone module (`__main__` entry point)
@@ -137,7 +137,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v2.1] — 2026-03-31
 
-### Added
+### ✨ Added
 
 - GitHub Actions CI pipeline (lint, test, coverage)
 - PyPI publishing workflow (triggered on GitHub Release)
@@ -145,7 +145,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Automated version bump workflow (patch/minor/major)
 - SECURITY.md with responsible disclosure policy
 
-### Improved
+### 🚀 Improved
 
 - pyproject.toml upgraded to Production/Stable with full metadata
 - README rewritten to top-tier open-source standard
@@ -161,7 +161,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v2.0] — 2026-03-24
 
-### Added
+### ✨ Added
 
 - `daemon-rs/` — Rust networking daemon core
   - `src/probe.rs` — HTTP 204 connectivity probing
@@ -190,7 +190,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.9] — 2026-03-23
 
-### Added
+### ✨ Added
 
 - `core/config.py` — layered configuration system
   - 8 typed sections: probe, daemon, dashboard, simulator, plugins, telemetry, tray, login
@@ -214,7 +214,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.8] — 2026-03-23
 
-### Added
+### ✨ Added
 
 - `plugins/registry.py` — local plugin registry (JSON persistence)
   - PluginEntry dataclass with package, version, source, portal_types
@@ -240,7 +240,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.7] — 2026-03-23
 
-### Added
+### ✨ Added
 
 - `testing/` subpackage for portal simulation
 - `testing/simulator.py` — captive portal emulator using stdlib http.server
@@ -287,7 +287,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.5] — 2026-03-23
 
-### Added
+### ✨ Added
 
 - `core/retry.py` — smart retry engine with adaptive backoff
 
@@ -309,7 +309,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.4] — 2026-03-23
 
-### Added
+### ✨ Added
 
 - `dashboard/` subpackage — local web dashboard at `http://localhost:8787`
 - `dashboard/api.py` — JSON API (5 endpoints: status, stats, history, networks, bandwidth)
@@ -333,7 +333,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.3] — 2026-03-23
 
-### Added
+### ✨ Added
 
 - `telemetry/session.py` — WiFi session uptime tracking
 - `telemetry/bandwidth.py` — bandwidth monitoring via /proc/net/dev
@@ -356,7 +356,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.2] — 2026-03-23
 
-### Added
+### ✨ Added
 
 - `core/fingerprint.py` — network fingerprinting (gateway IP/MAC, portal domain, content hash)
 - `core/profiles.py` — persistent network profile database with auto-learning
@@ -378,7 +378,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.1] — 2026-03-16
 
-### Added
+### ✨ Added
 
 - `ui/` subpackage for graphical components
 - `ui/notifier.py` — desktop notifications via `notify-send`
@@ -401,12 +401,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.0] — 2026-03-16
 
-### Added
+### ✨ Added
 
 - `core/state.py` — connection state machine (INIT → CONNECTED lifecycle)
 - `captivity networks` CLI subcommand
 
-### Changed
+### 🔄 Changed
 
 - `core/login.py` — rewritten for plugin-based portal login with cache fast-path
 - `daemon/runner.py` — integrates event bus, DBus monitor, state machine, auto-SSID
@@ -421,7 +421,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v0.9] — 2026-03-16
 
-### Added
+### ✨ Added
 - `daemon/events.py` — thread-safe event bus (subscribe/publish)
     - Events: NETWORK_CONNECTED, PORTAL_DETECTED, LOGIN_SUCCESS, LOGIN_FAILURE, SESSION_EXPIRED, SYSTEM_RESUME, DAEMON_START/STOP
 - `daemon/dbus_monitor.py` — NetworkManager state monitor via busctl/nmcli
@@ -436,7 +436,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v0.8] — 2026-03-16
 
-### Added
+### ✨ Added
 - Plugin architecture: `plugins/base.py` abstract base class
 - `plugins/pronto.py` — Pronto Networks plugin (extracted from login engine)
 - `plugins/generic.py` — Generic plugin using HTML form parser (fallback)
@@ -448,7 +448,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v0.7] — 2026-03-16
 
-### Added
+### ✨ Added
 - `core/parser.py` — dynamic HTML form parser for arbitrary captive portals
 - Automatic field detection (username/password by name patterns and input type)
 - Form payload builder with hidden field preservation
@@ -460,7 +460,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v0.6] — 2026-03-16
 
-### Added
+### ✨ Added
 - Python package structure: `src/captivity/` with `core/`, `daemon/`, `utils/` subpackages
 - `core/probe.py` — connectivity probing via `requests` (replaces curl)
 - `core/credentials.py` — `secret-tool` wrapper in Python
@@ -471,14 +471,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `pyproject.toml` — package metadata, `requests` dependency, `captivity` entry point
 - Python test suite: 34 tests (probe, credentials, login, CLI)
 
-### Changed
+### 🔄 Changed
 - `systemd/captivity.service` — ExecStart now uses `python3 -m captivity daemon`
 
 ---
 
 ## [v0.5] — 2026-03-16
 
-### Added
+### ✨ Added
 - `systemd/captivity.service` — systemd service unit for background daemon
 - Security hardening (NoNewPrivileges, ProtectSystem, PrivateTmp)
 - Automatic restart on failure with 10s delay
@@ -489,7 +489,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v0.4] — 2026-03-16
 
-### Added
+### ✨ Added
 - `scripts/captivity-dispatcher.sh` — NetworkManager dispatcher hook
 - Automatic login trigger on WiFi `up` and `connectivity-change` events
 - WiFi interface detection (wlan*, wlp*, wlo* patterns + sysfs check)
@@ -502,7 +502,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v0.3] — 2026-03-16
 
-### Added
+### ✨ Added
 - `scripts/captivity-reconnect.sh` — automatic reconnect loop with connectivity probing
 - Connectivity probe using `https://clients3.google.com/generate_204`
 - Exponential backoff retry: 5s → 10s → 30s → 60s → 120s → 300s
@@ -514,7 +514,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v0.2] — 2026-03-16
 
-### Added
+### ✨ Added
 - Secure credential storage using Linux Secret Service (`secret-tool`)
 - `scripts/captivity-creds.sh` — credential management CLI (store/retrieve/delete/list)
 - `scripts/captivity-login.sh` — enhanced login with `--network`, `--portal`, `--dry-run` flags
@@ -522,7 +522,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Project documentation: CONTRIBUTING.md, CONTRIBUTORS.md, timeline.md
 - Architecture documentation: `docs/architecture.md`
 
-### Changed
+### 🔄 Changed
 - `login.sh` — added legacy header comment (no functional changes)
 - `README.md` — updated with v0.2 features and credential setup instructions
 
@@ -530,7 +530,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v0.1] — 2025-01-01
 
-### Added
+### ✨ Added
 - Initial release
 - `login.sh` — Pronto Networks captive portal login via `curl`
 - Basic connectivity check after login
