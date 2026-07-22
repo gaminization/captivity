@@ -141,13 +141,16 @@ class DaemonRunner:
         """Map internal state transitions to event bus and retry engine."""
         if not self.network:
             from captivity.daemon.network_monitor import get_active_wifi_ssid
+
             self.network = get_active_wifi_ssid()
 
         network_name = self.network or "unknown"
         if new_state == ConnectionState.CONNECTED:
             self.retry_engine.record_success()
             self.browser_open_count = 0  # Reset CAPTCHA cooldown
-            if not (self.session_tracker.current and self.session_tracker.current.is_active):
+            if not (
+                self.session_tracker.current and self.session_tracker.current.is_active
+            ):
                 self.event_bus.publish(Event.LOGIN_SUCCESS)
                 self.stats_db.record_login_success(network_name)
                 self.session_tracker.start(network_name)
@@ -155,8 +158,12 @@ class DaemonRunner:
             self.retry_engine.record_failure(FailureType.TRANSIENT)
             if old_state in (ConnectionState.AUTHENTICATING, ConnectionState.PORTAL):
                 self.stats_db.record_login_failure(network_name, "transition_error")
-                
-        if new_state in (ConnectionState.ERROR, ConnectionState.PORTAL, ConnectionState.INIT):
+
+        if new_state in (
+            ConnectionState.ERROR,
+            ConnectionState.PORTAL,
+            ConnectionState.INIT,
+        ):
             ended_session = self.session_tracker.end()
             if ended_session:
                 self.event_bus.publish(Event.SESSION_EXPIRED)
@@ -164,7 +171,7 @@ class DaemonRunner:
                     network=ended_session.network,
                     duration=ended_session.duration,
                 )
-        
+
         if old_state == ConnectionState.ERROR and new_state == ConnectionState.PROBING:
             self.stats_db.record_reconnect(network_name)
 

@@ -94,7 +94,7 @@ class DashboardAPI:
                     result["network"] = last_event.network
                     uptime = time.time() - last_event.timestamp
                     result["uptime"] = uptime
-                    
+
                     secs = int(uptime)
                     if secs < 60:
                         result["uptime_str"] = f"{secs}s"
