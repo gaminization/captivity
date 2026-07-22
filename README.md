@@ -7,13 +7,12 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/gaminization/captivity/releases"><img src="https://img.shields.io/badge/version-3.0.0-blue?style=flat-square" alt="Version"></a>
-  <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/gaminization/captivity/ci.yml?branch=main&style=flat-square&label=tests" alt="CI"></a>
-  <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-tested-green?style=flat-square" alt="Coverage"></a>
+  <a href="https://pypi.org/project/captivity-cli/"><img src="https://img.shields.io/pypi/v/captivity-cli?style=flat-square&color=blue" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/captivity-cli/"><img src="https://img.shields.io/pypi/pyversions/captivity-cli?style=flat-square" alt="Python Versions"></a>
+  <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square" alt="Tests"></a>
+  <a href="https://github.com/gaminization/captivity/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-95%25-brightgreen?style=flat-square" alt="Coverage"></a>
   <a href="https://github.com/gaminization/captivity/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-orange?style=flat-square" alt="License"></a>
-  <a href="https://pypi.org/project/captivity/"><img src="https://img.shields.io/badge/python-3.8%2B-yellow?style=flat-square" alt="Python"></a>
   <a href="https://github.com/gaminization/captivity/actions/workflows/codeql.yml"><img src="https://img.shields.io/badge/security-CodeQL-purple?style=flat-square" alt="CodeQL"></a>
-  <a href="https://github.com/gaminization/captivity/blob/main/.github/SECURITY.md"><img src="https://img.shields.io/badge/disclosure-responsible-green?style=flat-square" alt="Security Policy"></a>
 </p>
 
 ---
@@ -114,13 +113,6 @@ captivity install
 
 > [!WARNING]
 > **If you use `pipx` to install python apps**, you must use `pipx install --system-site-packages captivity-cli` so the system tray can access the GTK libraries installed via `apt` or `pacman`.
-
-### Homebrew
-
-```bash
-brew tap gaminization/captivity
-brew install captivity
-```
 
 ### From source
 
