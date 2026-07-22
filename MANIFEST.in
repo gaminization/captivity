@@ -1,2 +1,4 @@
 recursive-include daemon-rs *
+prune daemon-rs/target
 include setup.py
+
